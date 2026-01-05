@@ -1,0 +1,11 @@
+services:
+  db:
+    image: postgres:15
+    container_name: social_movie_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: social_movie_app
+    ports:
+      - "5432:5432"
+    restart: always
