@@ -27,7 +27,7 @@ public class GenreService {
     @Transactional
     public RestResponse<GenreResponse> createGenre(GenreCreateRequest request, String lang) {
         if (genreRepository.existsByName(request.getName())) {
-            throw new BusinessException(messageHelper.getMessage("genre.already.exist"));
+            throw new BusinessException(messageHelper.getMessage("genre.already.exists"));
         }
 
         Genre genre = genreMapper.toEntity(request);

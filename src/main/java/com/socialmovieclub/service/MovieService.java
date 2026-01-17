@@ -6,18 +6,24 @@ import com.socialmovieclub.dto.request.MovieCreateRequest;
 import com.socialmovieclub.dto.response.MovieResponse;
 import com.socialmovieclub.entity.Genre;
 import com.socialmovieclub.entity.Movie;
+import com.socialmovieclub.entity.Rating;
 import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.mapper.MovieMapper;
 import com.socialmovieclub.repository.GenreRepository;
 import com.socialmovieclub.repository.MovieRepository;
+import com.socialmovieclub.repository.RatingRepository;
+import com.socialmovieclub.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import static com.socialmovieclub.core.result.RestResponse.success;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +33,8 @@ public class MovieService {
     private final MovieMapper movieMapper;
     private final MessageHelper messageHelper;
     private final GenreRepository genreRepository;
+    private final RatingRepository ratingRepository;
+    private final UserRepository userRepository;
 
 
 
@@ -75,5 +83,48 @@ public class MovieService {
 
         // 2. Bunu RestResponse zarfına koyup dön
         return success(responseData);
+    }
+
+    public RestResponse<List<MovieResponse>> getTopRatedMovies(String lang) {
+        List<Movie> movies = movieRepository.findTop10ByOrderByClubRatingDesc();
+        return success(movieMapper.toResponseList(movies, lang), messageHelper.getMessage("common.success"));
+    }
+
+    public RestResponse<List<MovieResponse>> getTrendingMovies(String lang) {
+        // Repository'de yazdığımız "En çok oylanan ilk 10" sorgusunu çağırıyoruz
+        List<Movie> movies = movieRepository.findTop10ByOrderByClubVoteCountDesc();
+        return success(movieMapper.toResponseList(movies, lang), messageHelper.getMessage("common.success"));
+    }
+
+
+
+//    public RestResponse<MovieResponse> getMovieById(UUID id, String lang) {
+//        Movie movie = movieRepository.findById(id)
+//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+//
+//        return success(movieMapper.toResponse(movie, lang));
+//    }
+
+    public RestResponse<MovieResponse> getMovieById(UUID id, String lang) {
+        Movie movie = movieRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+
+        MovieResponse response = movieMapper.toResponse(movie, lang);
+
+        // Giriş yapmış kullanıcının puanını kontrol et
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                // Kullanıcıyı bul ve eğer varsa puanını response'a ekle
+                userRepository.findByUsername(username).ifPresent(user -> {
+                    ratingRepository.findByUserIdAndMovieId(user.getId(), id)
+                            .ifPresent(rating -> response.setUserScore(rating.getScore()));
+                });
+            }
+        } catch (Exception e) {
+            // Kullanıcı giriş yapmamışsa hata almamak için sessizce devam et
+        }
+
+        return success(response);
     }
 }

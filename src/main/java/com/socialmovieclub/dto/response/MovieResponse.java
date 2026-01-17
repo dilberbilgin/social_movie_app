@@ -21,6 +21,7 @@ public class MovieResponse {
     private String imdbUrl;
     private Double clubRating;      // Senin sitemizdeki ortalama
     private Integer clubVoteCount;  // Kaç kişi oy verdi?
+    private Integer userScore; // Kullanıcının bu filme verdiği özel puan (eğer varsa)
     // ----------------------------
     private String posterUrl;
 

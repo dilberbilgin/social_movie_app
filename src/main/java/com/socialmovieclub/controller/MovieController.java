@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.socialmovieclub.core.result.RestResponse.success;
 
@@ -45,4 +46,27 @@ public class MovieController {
         // Service zaten RestResponse<List<MovieResponse>> dönüyor.
         return movieService.getAllMovies(lang);
     }
+
+    // En yüksek puanlılar
+    @GetMapping("/top-rated")
+    public RestResponse<List<MovieResponse>> getTopRated(@RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+        return movieService.getTopRatedMovies(lang);
+    }
+
+    // En çok oylananlar (Trendler)
+    @GetMapping("/trending")
+    public RestResponse<List<MovieResponse>> getTrending(
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+        return movieService.getTrendingMovies(lang);
+    }
+
+    @GetMapping("/{id}")
+    public RestResponse<MovieResponse> getMovieDetail(
+            @PathVariable UUID id, // Eğer ID tipin UUID ise
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+
+        return movieService.getMovieById(id, lang);
+    }
+
+
 }

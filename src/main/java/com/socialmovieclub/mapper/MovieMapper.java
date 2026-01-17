@@ -112,3 +112,8 @@ public interface MovieMapper {
         return "https://image.tmdb.org/t/p/w500" + (posterPath.startsWith("/") ? "" : "/") + posterPath;
     }
 }
+
+/*
+poster url gelen veri /p96dm... gibi bir path ise başına
+TMDB URL'ini ekliyor, eğer tam bir URL ise dokunmuyor.
+* */

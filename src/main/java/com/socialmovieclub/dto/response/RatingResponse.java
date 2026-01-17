@@ -11,4 +11,12 @@ public class RatingResponse {
     private Integer score;
     private String username;
     private UUID movieId;
+
+    // profil sayfasında film kartını direkt basalım
+    private String movieTitle;
+    private String posterUrl;
+    private Integer releaseYear;
+
+    private Double newClubRating;      // Güncel ortalama
+    private Integer newClubVoteCount;  // Güncel oy sayısı
 }

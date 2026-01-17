@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -50,6 +51,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults()) // CORS konfigürasyonunu aktif et
                 .csrf(AbstractHttpConfigurer::disable) // Test aşamasında kolaylık için kapattık
                 .authorizeHttpRequests(auth -> auth
                         // 1. Herkese Açık Kapılar (Giriş ve Kayıt)
@@ -62,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/comments/**").authenticated() // Sadece üyeler yorum yazabilsin
                         .requestMatchers(HttpMethod.DELETE, "/api/comments/**").authenticated() // Sadece üyeler silsin
                         .requestMatchers("/api/tmdb/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/ratings/**").authenticated()
 
                         // 4. Geri Kalan Her Şey (Yorum yapma, profil görme vb. için giriş şart)
                         .anyRequest().authenticated()

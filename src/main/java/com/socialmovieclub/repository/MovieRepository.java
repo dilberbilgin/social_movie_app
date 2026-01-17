@@ -22,6 +22,12 @@ public interface MovieRepository extends JpaRepository<Movie, UUID> { // Burası
     List<Movie> findAll(); // Tüm filmleri kategorileri ve çevirileriyle TEK sorguda getirir
 
     boolean existsByTmdbId(Long tmdbId);
+
+    // En yüksek puan alan ilk 10 filmi getir
+    List<Movie> findTop10ByOrderByClubRatingDesc();
+
+    // En çok oylanan (trend olan) ilk 10 filmi getir
+    List<Movie> findTop10ByOrderByClubVoteCountDesc();
 }
 
 
