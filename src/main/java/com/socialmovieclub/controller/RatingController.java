@@ -6,6 +6,8 @@ import com.socialmovieclub.dto.response.RatingResponse;
 import com.socialmovieclub.service.RatingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,8 +27,9 @@ public class RatingController {
 
     // Giriş yapmış kullanıcının kendi puanlarını görmesi
     @GetMapping("/me")
-    public RestResponse<List<RatingResponse>> getMyRatings(@RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-        return ratingService.getUserRatings(lang);
+    public RestResponse<Page<RatingResponse>> getMyRatings(@RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+                                                           @org.springframework.data.web.PageableDefault(size = 20, sort = "createdDate") Pageable pageable) {
+        return ratingService.getUserRatings(lang, pageable);
     }
 
     @DeleteMapping("/{movieId}")

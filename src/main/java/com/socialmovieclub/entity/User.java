@@ -36,4 +36,7 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private Set<Role> roles = new HashSet<>();
+
+    private String bio;
+    private String profilePictureUrl;
 }

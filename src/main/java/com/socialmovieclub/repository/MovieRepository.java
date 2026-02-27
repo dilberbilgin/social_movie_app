@@ -3,6 +3,7 @@ package com.socialmovieclub.repository;
 import com.socialmovieclub.entity.Movie;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,7 +16,8 @@ import java.util.UUID;
 //    boolean existsByOriginalTitleAndReleaseYear(String originalTitle, Integer releaseYear);
 //}
 
-public interface MovieRepository extends JpaRepository<Movie, UUID> { // Burası UUID oldu
+//JpaSpecificationExecutor ekleyerek dinamik sorgu yeteneği kazandırıyoruz.
+public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecificationExecutor<Movie> { // Burası UUID oldu
     boolean existsByOriginalTitleAndReleaseYear(String originalTitle, Integer releaseYear);
 
     @EntityGraph(attributePaths = {"genres", "translations"})

@@ -68,5 +68,12 @@ public class MovieController {
         return movieService.getMovieById(id, lang);
     }
 
-
+    @GetMapping("/search")
+    public RestResponse<List<MovieResponse>> searchMovies(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) UUID genreId,
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang
+    ) {
+        return movieService.searchMovies(title, genreId, lang);
+    }
 }

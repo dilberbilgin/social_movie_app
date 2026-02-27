@@ -9,12 +9,10 @@ import com.socialmovieclub.entity.Movie;
 import com.socialmovieclub.entity.Rating;
 import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.mapper.MovieMapper;
-import com.socialmovieclub.repository.GenreRepository;
-import com.socialmovieclub.repository.MovieRepository;
-import com.socialmovieclub.repository.RatingRepository;
-import com.socialmovieclub.repository.UserRepository;
+import com.socialmovieclub.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +33,8 @@ public class MovieService {
     private final GenreRepository genreRepository;
     private final RatingRepository ratingRepository;
     private final UserRepository userRepository;
+
+    private final MovieLikeRepository movieLikeRepository;
 
 
 
@@ -81,35 +81,36 @@ public class MovieService {
         // 1. Listeyi dile göre çevirip Response DTO listesine dönüştür
         List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
 
+        enrichMovieListWithLikes(responseData);
+
         // 2. Bunu RestResponse zarfına koyup dön
         return success(responseData);
     }
 
     public RestResponse<List<MovieResponse>> getTopRatedMovies(String lang) {
         List<Movie> movies = movieRepository.findTop10ByOrderByClubRatingDesc();
-        return success(movieMapper.toResponseList(movies, lang), messageHelper.getMessage("common.success"));
+        List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
+        enrichMovieListWithLikes(responseData);
+        return success(responseData, messageHelper.getMessage("common.success"));
     }
 
     public RestResponse<List<MovieResponse>> getTrendingMovies(String lang) {
         // Repository'de yazdığımız "En çok oylanan ilk 10" sorgusunu çağırıyoruz
         List<Movie> movies = movieRepository.findTop10ByOrderByClubVoteCountDesc();
-        return success(movieMapper.toResponseList(movies, lang), messageHelper.getMessage("common.success"));
+        List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
+        enrichMovieListWithLikes(responseData);
+        return success(responseData, messageHelper.getMessage("common.success"));
     }
 
-
-
-//    public RestResponse<MovieResponse> getMovieById(UUID id, String lang) {
-//        Movie movie = movieRepository.findById(id)
-//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
-//
-//        return success(movieMapper.toResponse(movie, lang));
-//    }
 
     public RestResponse<MovieResponse> getMovieById(UUID id, String lang) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
 
         MovieResponse response = movieMapper.toResponse(movie, lang);
+
+        // LIKE/DISLIKE Zenginleştirmesi
+        enrichMovieWithLikes(response);
 
         // Giriş yapmış kullanıcının puanını kontrol et
         try {
@@ -127,4 +128,46 @@ public class MovieService {
 
         return success(response);
     }
+
+    private void enrichMovieWithLikes(MovieResponse dto) {
+        dto.setLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(dto.getId()));
+        dto.setDislikeCount(movieLikeRepository.countByMovieIdAndIsLikedFalse(dto.getId()));
+
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username != null && !username.equals("anonymousUser")) {
+                userRepository.findByUsername(username).ifPresent(user -> {
+                    movieLikeRepository.findByUserIdAndMovieId(user.getId(), dto.getId())
+                            .ifPresent(like -> dto.setUserReaction(like.isLiked()));
+                });
+            }
+        } catch (Exception e) { /* Login değilse geç */ }
+    }
+
+    private void enrichMovieListWithLikes(List<MovieResponse> dtos) {
+        dtos.forEach(this::enrichMovieWithLikes);
+    }
+
+    public RestResponse<List<MovieResponse>> searchMovies(String title, UUID genreId, String lang) {
+        // Dinamik sorgu oluşturucu
+        Specification<Movie> spec = Specification.where(null);
+
+        if (title != null && !title.isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("originalTitle")), "%" + title.toLowerCase() + "%"));
+        }
+
+        if (genreId != null) {
+            // Many-to-Many ilişkide genre üzerinden filtreleme
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.join("genres").get("id"), genreId));
+        }
+
+        List<Movie> movies = movieRepository.findAll(spec);
+        List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
+        enrichMovieListWithLikes(responseData);
+        return success(responseData);
+    }
+
+
 }

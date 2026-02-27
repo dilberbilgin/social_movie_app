@@ -36,4 +36,11 @@ public class Comment extends BaseEntity {
     private List<Comment> replies = new ArrayList<>();
 
     private boolean deleted = false; // Silinen yorumları "Silindi" olarak işaretleyip hiyerarşiyi bozmamak için
+
+    public void softDelete(String deletedMessage) {
+        this.deleted = true;
+        this.content = deletedMessage;
+        // Cevapları silmiyoruz (Instagram mantığı),
+        // sadece ana yorumun içeriğini "Silindi" yapıyoruz.
+    }
 }

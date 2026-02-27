@@ -14,6 +14,8 @@ Docker: Veritabanı ve ileride eklenecek Redis gibi araçların her bilgisayarda
 
 MapStruct: Entity (Veritabanı objesi) ve DTO (Transfer objesi) arasındaki dönüşümü el ile yapıp vakit kaybetmemek ve hata yapmamak için en hızlı Java mapper kütüphanesini seçtik.
 
+JWT (JSON Web Token): Stateless (durumsuz) kimlik doğrulama ile ölçeklenebilir güvenlik.
+
 2. İlk Adım: Veritabanı ve Ortam Hazırlığı
    İşe kod yazarak değil, kodun yaşayacağı ortamı hazırlayarak başladık:
 

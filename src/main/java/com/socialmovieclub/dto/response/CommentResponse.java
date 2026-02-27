@@ -15,4 +15,8 @@ public class CommentResponse {
     private String username; // Yorumu yapan kişi
     private LocalDateTime createdDate;
     private List<CommentResponse> replies; // Alt yorumlar
+
+    private long likeCount;
+    private long dislikeCount;
+    private Boolean userReaction; // null: tepki yok, true: liked, false: disliked
 }

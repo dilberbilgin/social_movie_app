@@ -30,6 +30,10 @@ public class MovieResponse {
     private String description;
 
     private List<GenreResponse> genres;
+
+    private long likeCount;
+    private long dislikeCount;
+    private Boolean userReaction; // null: tepki yok, true: liked, false: disliked
 }
 
 

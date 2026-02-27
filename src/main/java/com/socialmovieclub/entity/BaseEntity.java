@@ -13,10 +13,6 @@ import java.util.UUID;
 @Setter
 public abstract class BaseEntity {
 
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long id;
-
     @Id
     @GeneratedValue
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "UUID")
