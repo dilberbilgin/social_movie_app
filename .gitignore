@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Spring Boot config files
+**/src/main/resources/application.properties
+**/src/main/resources/application.yml
+
+# Eğer özel isimli profil dosyaların varsa (application-dev.properties gibi)
+**/src/main/resources/application-*.properties
+**/src/main/resources/application-*.yml
