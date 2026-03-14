@@ -39,3 +39,10 @@ build/
 # Eğer özel isimli profil dosyaların varsa (application-dev.properties gibi)
 **/src/main/resources/application-*.properties
 **/src/main/resources/application-*.yml
+
+# Docker Configuration (Gizlemek istediğin için eklendi)
+docker-compose.yml
+
+# İşletim Sistemi ve Loglar
+.DS_Store
+*.log

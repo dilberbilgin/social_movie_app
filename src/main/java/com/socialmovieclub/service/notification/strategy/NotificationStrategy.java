@@ -1,0 +1,8 @@
+package com.socialmovieclub.service.notification.strategy;
+
+import com.socialmovieclub.enums.NotificationType;
+
+public interface NotificationStrategy {
+    NotificationType getType(); // Stratejinin hangi tipte olduğunu belirler
+    String buildMessage(String actorName, String targetTitle);
+}

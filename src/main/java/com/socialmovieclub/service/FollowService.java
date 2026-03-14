@@ -4,6 +4,8 @@ import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.response.UserResponse;
 import com.socialmovieclub.entity.Follow;
 import com.socialmovieclub.entity.User;
+import com.socialmovieclub.enums.ActivityType;
+import com.socialmovieclub.enums.NotificationType;
 import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.mapper.FollowMapper;
 import com.socialmovieclub.repository.FollowRepository;
@@ -15,10 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -28,11 +27,13 @@ public class FollowService {
     private final UserRepository userRepository;
     private final MessageHelper messageHelper;
     private final FollowMapper followMapper;
+    private final ActivityService activityService;
+    private final SecurityService securityService;
+    private final NotificationService notificationService;
 
     @Transactional
     public void followUser(UUID followingId, String currentUsername) {
-        User follower = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new BusinessException("User not found"));
+        User follower = securityService.getCurrentUser();
 
         User following = userRepository.findById(followingId)
                 .orElseThrow(() -> new BusinessException("Target user not found"));
@@ -51,6 +52,65 @@ public class FollowService {
         follow.setFollower(follower);
         follow.setFollowing(following);
         followRepository.save(follow);
+
+        // --- BİLDİRİM TETİKLEME ---
+        notificationService.createNotification(
+                following,           // Alıcı: Takip edilen kişi
+                follower,            // Aktör: Takip eden kişi
+                NotificationType.FOLLOW,
+                follower.getId(),    // Tıklayınca takip edenin profiline gitsin
+                follower.getUsername()
+        );
+
+        // AKTİVİTE KAYDI: X kullanıcısı Y kullanıcısını takip etti
+        activityService.createActivity(follower.getId(), ActivityType.FOLLOW_USER, followingId, following.getUsername(), follower.getProfilePictureUrl());
+    }
+
+
+    public Page<UserResponse> getFollowers(UUID userId, Pageable pageable) {
+        Optional<User> currentUser = securityService.getUserIfLoggedIn();
+
+        // 1. Sayfalanmış Follow kayıtlarını çek
+        Page<Follow> followersPage = followRepository.findAllByFollowingId(userId, pageable);
+        if (followersPage.isEmpty()) return Page.empty();
+
+        // 2. Sadece BU sayfadaki kullanıcıların ID'lerini topla (Maksimum 'size' kadar, örn: 20)
+        List<UUID> followerIds = followersPage.getContent().stream()
+                .map(f -> f.getFollower().getId())
+                .toList();
+
+        // Toplu kontrol
+        Set<UUID> followedUserIds = currentUser
+                .map(user -> new HashSet<>(followRepository.findFollowedIds(user.getId(), followerIds)))
+                .orElse(new HashSet<>());
+
+        return followersPage.map(follow -> {
+            UserResponse res = followMapper.toFollowerResponse(follow);
+            res.setFollowing(followedUserIds.contains(res.getId()));
+            return res;
+        });
+    }
+
+    public Page<UserResponse> getFollowing(UUID userId, Pageable pageable) {
+        Optional<User> currentUser = securityService.getUserIfLoggedIn();
+
+        Page<Follow> followingPage = followRepository.findAllByFollowerId(userId, pageable);
+        if (followingPage.isEmpty())
+            return Page.empty();
+
+        List<UUID> followingIds = followingPage.getContent().stream()
+                .map(f -> f.getFollowing().getId())
+                .toList();
+
+        Set<UUID> followedUserIds = currentUser
+                .map(user -> new HashSet<>(followRepository.findFollowedIds(user.getId(), followingIds)))
+                .orElse(new HashSet<>());
+
+        return followingPage.map(follow -> {
+            UserResponse res = followMapper.toFollowingResponse(follow);
+            res.setFollowing(followedUserIds.contains(res.getId()));
+            return res;
+        });
     }
 
     @Transactional
@@ -80,58 +140,5 @@ public class FollowService {
 //                .map(followMapper::toFollowerResponse)
 //                .toList();
 //    }
-
-    public Page<UserResponse> getFollowers(UUID userId, Pageable pageable) {
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
-
-        // 1. Sayfalanmış Follow kayıtlarını çek
-        Page<Follow> followersPage = followRepository.findAllByFollowingId(userId, pageable);
-
-        if (followersPage.isEmpty()) return Page.empty();
-
-        // 2. Sadece BU sayfadaki kullanıcıların ID'lerini topla (Maksimum 'size' kadar, örn: 20)
-        List<UUID> followerIds = followersPage.getContent().stream()
-                .map(f -> f.getFollower().getId())
-                .toList();
-
-        // 3. Toplu kontrol (Bulk check)
-        Set<UUID> followedUserIds = new HashSet<>();
-        if (currentUser != null) {
-            followedUserIds = new HashSet<>(followRepository.findFollowedIds(currentUser.getId(), followerIds));
-        }
-
-        // 4. Page nesnesini dönüştür (Page.map() hem veriyi çevirir hem meta-datayı korur)
-        Set<UUID> finalFollowedUserIds = followedUserIds;
-        return followersPage.map(follow -> {
-            UserResponse res = followMapper.toFollowerResponse(follow);
-            res.setFollowing(finalFollowedUserIds.contains(res.getId()));
-            return res;
-        });
-    }
-
-    public Page<UserResponse> getFollowing(UUID userId, Pageable pageable) {
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
-
-        Page<Follow> followingPage = followRepository.findAllByFollowerId(userId, pageable);
-        if (followingPage.isEmpty()) return Page.empty();
-
-        List<UUID> followingIds = followingPage.getContent().stream()
-                .map(f -> f.getFollowing().getId())
-                .toList();
-
-        Set<UUID> followedUserIds = new HashSet<>();
-        if (currentUser != null) {
-            followedUserIds = new HashSet<>(followRepository.findFollowedIds(currentUser.getId(), followingIds));
-        }
-
-        Set<UUID> finalFollowedUserIds = followedUserIds;
-        return followingPage.map(follow -> {
-            UserResponse res = followMapper.toFollowingResponse(follow);
-            res.setFollowing(finalFollowedUserIds.contains(res.getId()));
-            return res;
-        });
-    }
 
 }

@@ -11,7 +11,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**") // Sadece /api ile başlayan endpointleri dışarı aç
                 .allowedOrigins("http://localhost:3000") // Sadece bizim frontend'e izin ver
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // İzin verilen metodlar
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS") // İzin verilen metodlar
                 .allowedHeaders("*") // Tüm başlıklara (Authorization dahil) izin ver
                 .allowCredentials(true); // JWT ve Cookie işlemleri için gerekli
     }

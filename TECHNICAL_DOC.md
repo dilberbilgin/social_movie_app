@@ -413,9 +413,6 @@ Interceptor Seviyesi: Spring LocaleContextHolder aracılığıyla gelen dil kodu
 Mapper Seviyesi: MovieMapper nesnesi, veritabanındaki çeviri tablosundan o dile ait olan başlık ve açıklamayı otomatik olarak seçer ve DTO'ya map eder. Eğer talep edilen dilde çeviri yoksa (Fallback), sistem varsayılan olarak en verisini döner.
 
 
-
-
-
 Mevcut Durum Değerlendirmesi
 
 Auth Akışı: Kayıt ol -> Giriş yap -> Token al.

@@ -41,6 +41,7 @@ public class UserService {
     private final RatingRepository ratingRepository;
     private final RatingMapper ratingMapper;
     private final FollowRepository followRepository;
+    private final SecurityService securityService;
 
     @Transactional
     public RestResponse<UserResponse> register(UserRegistrationRequest registrationRequest) {
@@ -122,57 +123,88 @@ public class UserService {
     }
 
     private boolean checkIfCurrentUserFollows(UUID targetUserId) {
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        // Eğer giriş yapılmamışsa veya anonimse direkt false dön
-        if (currentUsername == null || currentUsername.equals("anonymousUser")) {
-            return false;
-        }
-
-        // Giriş yapan kullanıcıyı bul ve takip tablosunda kontrol et
-        return userRepository.findByUsername(currentUsername)
+        // YENİ: Tek satırda temiz kontrol
+        return securityService.getUserIfLoggedIn()
                 .map(currentUser -> followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUserId))
                 .orElse(false);
     }
 
+//    private boolean checkIfCurrentUserFollows(UUID targetUserId) {
+//        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+//
+//        // Eğer giriş yapılmamışsa veya anonimse direkt false dön
+//        if (currentUsername == null || currentUsername.equals("anonymousUser")) {
+//            return false;
+//        }
+//
+//        // Giriş yapan kullanıcıyı bul ve takip tablosunda kontrol et
+//        return userRepository.findByUsername(currentUsername)
+//                .map(currentUser -> followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUserId))
+//                .orElse(false);
+//    }
+
     @Transactional
     public RestResponse<UserResponse> updateProfile(String username, UserProfileUpdateRequest request) {
-        //1. Guvenlik Kontrolu: Islemi yapan kisi gercekten o mu?
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        if (!currentUsername.equals(username)) {
+        // YENİ: Tek satırda güvenlik kontrolü
+        User currentUser = securityService.getCurrentUser();
+
+        if (!currentUser.getUsername().equals(username)) {
             throw new BusinessException(messageHelper.getMessage("user.unauthorized.update"));
         }
-        //2.Kullaniciyi bul
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-        //3.Mapper ile guncelle(firstName, lastName, bio, profilePictureUrl)
-        userMapper.updateEntityFromRequest(request, user);
-        //4.Kaydet ve don
-        User updatedUser = userRepository.save(user);
+
+        userMapper.updateEntityFromRequest(request, currentUser);
+        User updatedUser = userRepository.save(currentUser);
         return success(userMapper.toResponse(updatedUser), messageHelper.getMessage("user.profile.update.success"));
     }
-
+//    @Transactional
+//    public RestResponse<UserResponse> updateProfile(String username, UserProfileUpdateRequest request) {
+//        //1. Guvenlik Kontrolu: Islemi yapan kisi gercekten o mu?
+//        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+//        if (!currentUsername.equals(username)) {
+//            throw new BusinessException(messageHelper.getMessage("user.unauthorized.update"));
+//        }
+//        //2.Kullaniciyi bul
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
+//        //3.Mapper ile guncelle(firstName, lastName, bio, profilePictureUrl)
+//        userMapper.updateEntityFromRequest(request, user);
+//        //4.Kaydet ve don
+//        User updatedUser = userRepository.save(user);
+//        return success(userMapper.toResponse(updatedUser), messageHelper.getMessage("user.profile.update.success"));
+//    }
 
     public RestResponse<List<UserResponse>> getSuggestedUsers(int limit) {
-        // Ust sinir kontrolu
         int finalLimit = Math.min(limit, 20);
-        // 1. Giriş yapan kullanıcıyı bul
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        List<User> users;
-        if (currentUsername == null || currentUsername.equals("anonymousUser")) {
-            // Giriş yapmamışsa rastgele herhangi birilerini getir
-            users = userRepository.findAll().stream().limit(finalLimit).toList();
-        } else {
-            User currentUser = userRepository.findByUsername(currentUsername)
-                    .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-            // Giriş yapmışsa takip etmediklerini getir
-            users = userRepository.findSuggestedUsers(currentUser.getId(), limit);
-        }
-            List<UserResponse> responses = users.stream()
-                    .map(userMapper::toResponse)
-                    .toList();
-            return success(responses, "Suggestions fetched");
+        // YENİ: getUserIfLoggedIn() ile tertemiz yapı
+        List<User> users = securityService.getUserIfLoggedIn()
+                .map(user -> userRepository.findSuggestedUsers(user.getId(), finalLimit))
+                .orElseGet(() -> userRepository.findAll().stream().limit(finalLimit).toList());
+
+        return success(users.stream().map(userMapper::toResponse).toList(), "Suggestions fetched");
     }
+
+
+//    public RestResponse<List<UserResponse>> getSuggestedUsers(int limit) {
+//        // Ust sinir kontrolu
+//        int finalLimit = Math.min(limit, 20);
+//        // 1. Giriş yapan kullanıcıyı bul
+//        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+//
+//        List<User> users;
+//        if (currentUsername == null || currentUsername.equals("anonymousUser")) {
+//            // Giriş yapmamışsa rastgele herhangi birilerini getir
+//            users = userRepository.findAll().stream().limit(finalLimit).toList();
+//        } else {
+//            User currentUser = userRepository.findByUsername(currentUsername)
+//                    .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
+//            // Giriş yapmışsa takip etmediklerini getir
+//            users = userRepository.findSuggestedUsers(currentUser.getId(), limit);
+//        }
+//            List<UserResponse> responses = users.stream()
+//                    .map(userMapper::toResponse)
+//                    .toList();
+//            return success(responses, "Suggestions fetched");
+//    }
 
 }

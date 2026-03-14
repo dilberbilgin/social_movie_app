@@ -64,6 +64,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/tmdb/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/follows/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/profile/**").permitAll() // Profilleri herkes görebilsin
+                        .requestMatchers("/ws-notifications/**").permitAll() // WebSocket bağlantısına izin ver
+                        .requestMatchers("/api/notifications/**").authenticated()
 
                         // 3. Kimlik Doğrulama Gerektiren Aksiyonlar
                         .requestMatchers(HttpMethod.POST, "/api/comments/**").authenticated() // Hem add hem like/dislike kapsar

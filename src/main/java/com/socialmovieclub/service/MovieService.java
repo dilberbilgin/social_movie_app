@@ -35,6 +35,7 @@ public class MovieService {
     private final UserRepository userRepository;
 
     private final MovieLikeRepository movieLikeRepository;
+    private final SecurityService securityService;
 
 
 
@@ -113,18 +114,11 @@ public class MovieService {
         enrichMovieWithLikes(response);
 
         // Giriş yapmış kullanıcının puanını kontrol et
-        try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            if (username != null && !username.equals("anonymousUser")) {
-                // Kullanıcıyı bul ve eğer varsa puanını response'a ekle
-                userRepository.findByUsername(username).ifPresent(user -> {
-                    ratingRepository.findByUserIdAndMovieId(user.getId(), id)
-                            .ifPresent(rating -> response.setUserScore(rating.getScore()));
-                });
-            }
-        } catch (Exception e) {
-            // Kullanıcı giriş yapmamışsa hata almamak için sessizce devam et
-        }
+        // Giriş yapmış kullanıcının puanını Optional ile güvenli set et
+        securityService.getUserIfLoggedIn().ifPresent(user -> {
+            ratingRepository.findByUserIdAndMovieId(user.getId(), id)
+                    .ifPresent(rating -> response.setUserScore(rating.getScore()));
+        });
 
         return success(response);
     }
@@ -133,15 +127,20 @@ public class MovieService {
         dto.setLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(dto.getId()));
         dto.setDislikeCount(movieLikeRepository.countByMovieIdAndIsLikedFalse(dto.getId()));
 
-        try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            if (username != null && !username.equals("anonymousUser")) {
-                userRepository.findByUsername(username).ifPresent(user -> {
-                    movieLikeRepository.findByUserIdAndMovieId(user.getId(), dto.getId())
-                            .ifPresent(like -> dto.setUserReaction(like.isLiked()));
-                });
-            }
-        } catch (Exception e) { /* Login değilse geç */ }
+
+//        try {
+//            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+//            if (username != null && !username.equals("anonymousUser")) {
+//                userRepository.findByUsername(username).ifPresent(user -> {
+//                    movieLikeRepository.findByUserIdAndMovieId(user.getId(), dto.getId())
+//                            .ifPresent(like -> dto.setUserReaction(like.isLiked()));
+//                });
+//            }
+//        } catch (Exception e) { /* Login değilse geç */ }
+        securityService.getUserIfLoggedIn().ifPresent(user -> {
+            movieLikeRepository.findByUserIdAndMovieId(user.getId(), dto.getId())
+                    .ifPresent(like -> dto.setUserReaction(like.isLiked()));
+        });
     }
 
     private void enrichMovieListWithLikes(List<MovieResponse> dtos) {

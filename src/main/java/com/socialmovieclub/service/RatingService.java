@@ -33,14 +33,12 @@ public class RatingService {
     private final UserRepository userRepository;
     private final RatingMapper ratingMapper;
     private final MessageHelper messageHelper;
+    private final SecurityService securityService;
 
     @Transactional
     public RestResponse<RatingResponse> rateMovie(RatingRequest request) {
         // 1. GÜVENLİK: İstemi yapan kullanıcıyı bul
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-
+        User user = securityService.getCurrentUser();
         // 2. DOĞRULAMA: Film var mı?
         Movie movie = movieRepository.findById(request.getMovieId())
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
