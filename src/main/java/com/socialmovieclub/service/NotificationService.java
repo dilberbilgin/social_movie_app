@@ -45,7 +45,8 @@ public class NotificationService {
     }
 
 //    @Async
-    public void createNotification(User recipient, User actor, NotificationType type, UUID targetId, String targetTitle) {
+    public void createNotification(User recipient, User actor, NotificationType type,
+                                   UUID targetId, UUID subTargetId, String targetTitle) {
         if (recipient.getId().equals(actor.getId())) return;
 
         Notification notification = Notification.builder()
@@ -53,6 +54,7 @@ public class NotificationService {
                 .actor(actor)
                 .type(type)
                 .targetId(targetId)
+                .subTargetId(subTargetId)
                 .content(targetTitle)
                 .isRead(false)
                 .build();

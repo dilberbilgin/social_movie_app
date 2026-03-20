@@ -58,7 +58,8 @@ public class FollowService {
                 following,           // Alıcı: Takip edilen kişi
                 follower,            // Aktör: Takip eden kişi
                 NotificationType.FOLLOW,
-                follower.getId(),    // Tıklayınca takip edenin profiline gitsin
+                follower.getId(),    // Tıklayınca takip edenin profiline gitsi
+                null,
                 follower.getUsername()
         );
 

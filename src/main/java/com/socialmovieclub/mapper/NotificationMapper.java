@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 public interface NotificationMapper {
     @Mapping(target = "actorUsername", source = "actor.username")
     @Mapping(target = "actorAvatar", source = "actor.profilePictureUrl")
+    @Mapping(target = "subTargetId", source = "subTargetId")
     @Mapping(target = "message", ignore = true) // Strategy ile set edeceğiz
     NotificationResponse toResponse(Notification notification);
 }

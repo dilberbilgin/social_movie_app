@@ -25,8 +25,12 @@ public class Notification extends BaseEntity {
 
     private UUID targetId; // Film ID, Yorum ID vb.
 
+    private UUID subTargetId; // Örn: Yorum ID
+
     private String content; // Opsiyonel: Yorum önizlemesi gibi
 
     @Builder.Default
+    @Column(nullable = false)
     private boolean isRead = false;
+
 }
