@@ -1,11 +1,18 @@
 package com.socialmovieclub.dto.response;
 
 import com.socialmovieclub.enums.ActivityType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Builder
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ActivityResponse {
     private UUID id;
     private UUID userId;
@@ -18,6 +25,5 @@ public class ActivityResponse {
     private String targetTitle;  // Film Adı (OriginalTitle)
     private String targetImage;  // Film Posteri veya Profil Resmi
     private String content;      // Yorumun içeriği veya "X filmini beğendi" mesajı
-
     private LocalDateTime createdDate;
 }

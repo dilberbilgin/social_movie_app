@@ -33,7 +33,7 @@ public class FollowController {
     public RestResponse<Void> unfollow(@RequestBody FollowRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         System.out.println("Unfollow isteği geldi: " + username + " -> Target ID: " + request.getFollowingId());
-        followService.unfollowUser(request.getFollowingId(), username);
+        followService.unfollowUser(request.getFollowingId());
         return success(null, "Unfollowed successfully");
     }
 

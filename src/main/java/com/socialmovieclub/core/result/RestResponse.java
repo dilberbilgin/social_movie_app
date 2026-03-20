@@ -1,6 +1,9 @@
 package com.socialmovieclub.core.result;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,13 +16,19 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL) // Sadece null olmayan alanları JSON'a basar (Temiz JSON)
-public class RestResponse<T> {
+public class RestResponse<T> implements java.io.Serializable{
+
+    private static final long serialVersionUID = 1L; // Versiyon kontrolü için iyi bir pratik
 
     private T data;
     private Map<String, String> validationErrors; // Validation hataları için özel alan
     private String message;
     private boolean success;
     private int status;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonSerialize(using = com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer.class)
     private LocalDateTime responseDate;
 
     // Başarı Constructor'ı

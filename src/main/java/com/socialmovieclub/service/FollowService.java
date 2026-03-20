@@ -1,5 +1,6 @@
 package com.socialmovieclub.service;
 
+import com.socialmovieclub.core.constant.CacheConstants;
 import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.response.UserResponse;
 import com.socialmovieclub.entity.Follow;
@@ -11,9 +12,9 @@ import com.socialmovieclub.mapper.FollowMapper;
 import com.socialmovieclub.repository.FollowRepository;
 import com.socialmovieclub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,7 @@ public class FollowService {
     private final NotificationService notificationService;
 
     @Transactional
+    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true)
     public void followUser(UUID followingId, String currentUsername) {
         User follower = securityService.getCurrentUser();
 
@@ -115,9 +117,9 @@ public class FollowService {
     }
 
     @Transactional
-    public void unfollowUser(UUID followingId, String currentUsername) {
-        User follower = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new BusinessException("User not found" + currentUsername));
+    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true)
+    public void unfollowUser(UUID followingId) {
+        User follower = securityService.getCurrentUser();
 
         followRepository.findByFollowerIdAndFollowingId(follower.getId(), followingId)
                 .ifPresent(followRepository::delete);
