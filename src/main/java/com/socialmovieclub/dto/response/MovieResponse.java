@@ -34,6 +34,7 @@ public class MovieResponse {
     private long likeCount;
     private long dislikeCount;
     private Boolean userReaction; // null: tepki yok, true: liked, false: disliked
+    private long commentCount;
 }
 
 

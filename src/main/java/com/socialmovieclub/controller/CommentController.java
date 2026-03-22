@@ -27,11 +27,6 @@ public class CommentController {
         return commentService.createComment(request);
     }
 
-//    @GetMapping("/movie/{movieId}")
-//    public RestResponse<List<CommentResponse>> getComments(@PathVariable UUID movieId) {
-//        return commentService.getMovieComments(movieId);
-//    }
-
     @GetMapping("/movie/{movieId}")
     public RestResponse<Page<CommentResponse>> getComments(
             @PathVariable UUID movieId,

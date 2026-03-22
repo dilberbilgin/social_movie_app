@@ -30,55 +30,79 @@ public class FeedService {
     private final FollowRepository followRepository;
     private final SecurityService securityService;
     private final MovieRepository movieRepository;
+    private final CommentRepository commentRepository;
+    private final MovieLikeRepository movieLikeRepository;
 
     @Transactional(readOnly = true)
     @Cacheable(value = CacheConstants.FEED_CACHE,
             key = "#currentUserId + '-' + #pageable.pageNumber", // Artık hata vermez
             unless = "#result.success == false")
+
     public RestResponse<CustomPageResponse<ActivityResponse>> getFollowedFeed(UUID currentUserId, Pageable pageable) {
         User currentUser = securityService.getCurrentUser();
 
-        // 1. Takip edilenlerin ID listesini al
-        // Not: Burada Pageable olmayan, tüm listeyi dönen bir repo metodu daha efektif olabilir
+        // 1. Takip edilenleri al
         List<UUID> followedUserIds = followRepository.findAllByFollowerId(currentUser.getId(), Pageable.unpaged())
-                .getContent()
-                .stream()
-                .map(follow -> follow.getFollowing().getId())
-                .collect(Collectors.toList());
+                .getContent().stream().map(f -> f.getFollowing().getId()).collect(Collectors.toList());
 
-        // Eğer kimseyi takip etmiyorsa boş sayfa dön
-        if (followedUserIds.isEmpty()) {
-            return RestResponse.success(new CustomPageResponse<>()); // Boş liste dön
-        }
+        if (followedUserIds.isEmpty()) return RestResponse.success(new CustomPageResponse<>());
 
-        // 2. Bu ID'lerin aktivitelerini çek(Henüz zenginleştirilmemiş ham veriler)
+        // 2. Aktiviteleri çek
         Page<Activity> activities = activityRepository.findByUserIdInOrderByCreatedDateDesc(followedUserIds, pageable);
 
-
-//        // 3. Map to Response (İleride bunu MapStruct ile yapabiliriz)
-//        Page<ActivityResponse> response = activities.map(this::mapToActivityResponse);
-//
-//        return RestResponse.success(response);
-
-        // 3. PERFORMANS ANAHTARI: Tüm Film ID'lerini topla (Batching)
-        // Set kullanarak mükerrer ID'leri eliyoruz (Hafıza tasarrufu)
+        // 3. Filmleri toplu çek
         Set<UUID> movieIds = activities.getContent().stream()
-                .filter(a -> isMovieRelated(a.getType())) // Sadece film ile ilgili olanları seç
+                .filter(a -> isMovieRelated(a.getType()))
                 .map(Activity::getTargetId)
                 .collect(Collectors.toSet());
-        // 4. Tek bir toplu sorgu ile tüm filmleri getir ve Map'e at (Hızlı erişim için)
-        // Map yapısı: {ID -> Movie Nesnesi} şeklindedir, böylece döngüde O(1) hızında ulaşırız.
+
         Map<UUID, Movie> movieMap = movieRepository.findAllById(movieIds).stream()
                 .collect(Collectors.toMap(Movie::getId, m -> m));
 
-        // 5. Build kullanarak Response oluştur
+        // 4. MAP TO RESPONSE (Zenginleştirilmiş)
         Page<ActivityResponse> response = activities.map(activity -> {
-            Movie relatedMovie = movieMap.get(activity.getTargetId());
-            return mapToResponse(activity, relatedMovie);
+            Movie movie = movieMap.get(activity.getTargetId());
+            ActivityResponse res = mapToResponse(activity, movie);
 
+            if (movie != null) {
+                // 1. Toplam Beğeni Sayısı (MovieLikeRepository kullanarak)
+                res.setLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(movie.getId()));
+
+                // 2. Toplam Yorum Sayısı (CommentRepository kullanarak)
+                res.setCommentCount(commentRepository.countByMovieIdAndDeletedFalse(movie.getId()));
+
+                // 3. Giriş yapan kullanıcı bu filmi beğendi mi? (Kırmızı kalp için)
+                securityService.getUserIfLoggedIn().ifPresent(user -> {
+                    movieLikeRepository.findByUserIdAndMovieId(user.getId(), movie.getId())
+                            .ifPresent(like -> res.setUserReaction(like.isLiked()));
+                });
+            }
+            return res;
         });
+//        Page<ActivityResponse> response = activities.map(activity -> {
+//            Movie movie = movieMap.get(activity.getTargetId());
+//            ActivityResponse res = mapToResponse(activity, movie);
+//
+//            // --- GERÇEK SAYILARI SETLE ---
+//            if (movie != null) {
+//                // MovieResponse'da yaptığımız gibi film istatistiklerini ekliyoruz
+//                res.setLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(movie.getId()));
+//                // Yorum sayısını çekmek için commentRepository.countByMovieId eklenebilir
+//                // res.setCommentCount(commentRepository.countByMovieId(movie.getId()));
+//            }
+//
+//            // Mevcut kullanıcının reaksiyonu
+//            securityService.getUserIfLoggedIn().ifPresent(user -> {
+//                movieLikeRepository.findByUserIdAndMovieId(user.getId(), activity.getTargetId())
+//                        .ifPresent(like -> res.setUserReaction(like.isLiked()));
+//            });
+//
+//            return res;
+//        });
+
         return RestResponse.success(CustomPageResponse.of(response));
     }
+
 
     private boolean isMovieRelated(ActivityType type) {
         return List.of(ActivityType.MOVIE_LIKE,
@@ -104,61 +128,4 @@ public class FeedService {
                 .targetImage(movie != null ? movie.getPosterUrl() : activity.getTargetImage())
                 .build();
     }
-
-//    private ActivityResponse mapToActivityResponse(Activity activity) {
-//        ActivityResponse res = new ActivityResponse();
-//        res.setId(activity.getId());
-//        res.setUserId(activity.getUser().getId());
-//        res.setUsername(activity.getUser().getUsername());
-//        res.setType(activity.getType());
-//        res.setTargetId(activity.getTargetId());
-////        res.setContent(activity.getContent());
-//        res.setCreatedDate(activity.getCreatedDate());
-//        // ÖNEMLİ: Veritabanındaki gerçek içeriği ve resmi buraya aktar
-//        res.setContent(activity.getContent());
-//        res.setTargetImage(activity.getTargetImage());
-//
-//        // INSTAGRAM-STYLE ENRICHMENT (Veriyi Zenginleştirme)
-//        switch (activity.getType()) {
-//            case MOVIE_LIKE, MOVIE_RATE -> {
-//                movieRepository.findById(activity.getTargetId()).ifPresent(m -> {
-//                    res.setTargetTitle(m.getOriginalTitle());
-//                    res.setTargetImage(m.getPosterUrl());
-//                });
-//            }
-//            case FOLLOW_USER -> {
-//                userRepository.findById(activity.getTargetId()).ifPresent(u -> {
-//                    res.setTargetTitle(u.getUsername());
-//                     res.setTargetImage(u.getProfilePictureUrl());
-//                });
-//            }
-//            case COMMENT_CREATE, COMMENT_LIKE -> {
-////                // Yorum bir filme ait olduğu için filmin adını da gösterebiliriz
-//////                res.setTargetTitle("a comment");
-//////                res.setTargetTitle(activity.getContent());
-////
-////                // Eğer Activity nesnesinde targetImage doluysa onu kullan,
-////                // yoksa targetId (Film ID) üzerinden posteri çek:
-////                if (activity.getTargetImage() == null) {
-////                    movieRepository.findById(activity.getTargetId()).ifPresent(m -> {
-////                        res.setTargetImage(m.getPosterUrl());
-////                    });
-//
-//                // 1. Veritabanından filmi bulup adını targetTitle olarak set et
-//                movieRepository.findById(activity.getTargetId()).ifPresent(m -> {
-//                    res.setTargetTitle(m.getOriginalTitle()); // "{title}" artık film adı olacak
-//
-//                    // Eğer aktivite kaydedilirken poster gelmediyse buradan tamamla
-//                    if (activity.getTargetImage() == null) {
-//                        res.setTargetImage(m.getPosterUrl());
-//                    }
-//                });
-//
-//            }
-//        }
-//        return res;
-//
-//
-//    }
-
 }

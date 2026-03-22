@@ -35,6 +35,7 @@ public class MovieService {
     private final UserRepository userRepository;
 
     private final MovieLikeRepository movieLikeRepository;
+    private final CommentRepository commentRepository;
     private final SecurityService securityService;
 
 
@@ -126,6 +127,7 @@ public class MovieService {
     private void enrichMovieWithLikes(MovieResponse dto) {
         dto.setLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(dto.getId()));
         dto.setDislikeCount(movieLikeRepository.countByMovieIdAndIsLikedFalse(dto.getId()));
+        dto.setCommentCount(commentRepository.countByMovieIdAndDeletedFalse(dto.getId()));
 
 
 //        try {

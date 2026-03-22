@@ -11,9 +11,8 @@ import java.util.UUID;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, UUID> {
-    // 'CreatedAt' yerine 'CreatedDate' (BaseEntity'deki değişken adın neyse o olmalı)
-//    List<Comment> findByMovieIdAndParentIsNullAndDeletedFalseOrderByCreatedDateDesc(UUID movieId);
-
+    // Film sayfasındaki ve Feed'deki toplam yorum sayısını almak için
+    long countByMovieIdAndDeletedFalse(UUID movieId);
     // List yerine Page dönüyoruz
     Page<Comment> findByMovieIdAndParentIsNullAndDeletedFalseOrderByCreatedDateDesc(UUID movieId, Pageable pageable);
 }

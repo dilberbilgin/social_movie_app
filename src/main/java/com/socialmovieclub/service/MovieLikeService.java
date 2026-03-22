@@ -1,5 +1,6 @@
 package com.socialmovieclub.service;
 
+import com.socialmovieclub.core.constant.CacheConstants;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.entity.Movie;
@@ -11,6 +12,7 @@ import com.socialmovieclub.repository.MovieLikeRepository;
 import com.socialmovieclub.repository.MovieRepository;
 import com.socialmovieclub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ public class MovieLikeService {
     private final SecurityService securityService;
 
     @Transactional
+    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true) // Cache'i temizler, sayı güncellenir
     public RestResponse<Void> handleMovieReaction(UUID movieId, boolean isLike) {
         User user = securityService.getCurrentUser();
         Movie movie = movieRepository.findById(movieId)

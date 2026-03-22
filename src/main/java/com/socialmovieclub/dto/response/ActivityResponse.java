@@ -26,4 +26,8 @@ public class ActivityResponse {
     private String targetImage;  // Film Posteri veya Profil Resmi
     private String content;      // Yorumun içeriği veya "X filmini beğendi" mesajı
     private LocalDateTime createdDate;
+
+    private long likeCount;      // Aktivitenin beğeni sayısı
+    private long commentCount;   // Aktiviteye yapılan yorum sayısı
+    private Boolean userReaction; // Giriş yapan kullanıcı beğendi mi?
 }

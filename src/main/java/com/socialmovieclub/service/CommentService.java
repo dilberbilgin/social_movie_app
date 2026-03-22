@@ -1,5 +1,6 @@
 package com.socialmovieclub.service;
 
+import com.socialmovieclub.core.constant.CacheConstants;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.request.CommentRequest;
@@ -17,6 +18,7 @@ import com.socialmovieclub.repository.CommentRepository;
 import com.socialmovieclub.repository.MovieRepository;
 import com.socialmovieclub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ public class CommentService {
     private final NotificationService notificationService;
 
     @Transactional
+    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true)
     public RestResponse<CommentResponse> createComment(CommentRequest request) {
         User user = securityService.getCurrentUser();
         Movie movie = getMovieOrThrow(request.getMovieId());
@@ -151,6 +154,7 @@ public class CommentService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true)
     public RestResponse<Void> deleteComment(UUID commentId) {
 //        User currentUser = getCurrentUser();
         User currentUser = securityService.getCurrentUser();
@@ -175,12 +179,6 @@ public class CommentService {
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("comment.not.found")));
     }
-
-//    private User getCurrentUser() {
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-//        return userRepository.findByUsername(username)
-//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-//    }
 
     private Movie getMovieOrThrow(UUID movieId) {
         return movieRepository.findById(movieId)
