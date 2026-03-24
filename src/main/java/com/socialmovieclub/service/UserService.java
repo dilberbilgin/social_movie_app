@@ -3,16 +3,19 @@ package com.socialmovieclub.service;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.request.UserProfileUpdateRequest;
+import com.socialmovieclub.dto.response.ActivityResponse;
 import com.socialmovieclub.dto.response.ProfileResponse;
 import com.socialmovieclub.dto.response.RatingResponse;
 import com.socialmovieclub.dto.response.UserResponse;
 import com.socialmovieclub.dto.request.UserRegistrationRequest;
+import com.socialmovieclub.entity.Activity;
 import com.socialmovieclub.entity.Rating;
 import com.socialmovieclub.entity.User;
 import com.socialmovieclub.enums.Role;
 import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.mapper.RatingMapper;
 import com.socialmovieclub.mapper.UserMapper;
+import com.socialmovieclub.repository.ActivityRepository;
 import com.socialmovieclub.repository.FollowRepository;
 import com.socialmovieclub.repository.RatingRepository;
 import com.socialmovieclub.repository.UserRepository;
@@ -42,6 +45,7 @@ public class UserService {
     private final RatingMapper ratingMapper;
     private final FollowRepository followRepository;
     private final SecurityService securityService;
+    private final ActivityRepository activityRepository;
 
     @Transactional
     public RestResponse<UserResponse> register(UserRegistrationRequest registrationRequest) {
@@ -84,18 +88,27 @@ public class UserService {
         long followingCount = followRepository.countByFollowerId(user.getId());
 
         // 3. Sayfalı Rating verisini çek (findTop10... yerine findAllByUserId... + Pageable)
+        //Sayfalı Rating verisini çek (Grid görünümü için hala lazım olabilir)
         Page<Rating> ratingsPage = ratingRepository.findAllByUserIdOrderByCreatedDateDesc(user.getId(), pageable);
         // 4. Page.map() ile DTO ve Dil dönüşümü
-        Page<RatingResponse> recentRatingResponses = ratingsPage.map(rating -> {
-            RatingResponse res = ratingMapper.toResponse(rating);
-            String translatedTitle = rating.getMovie().getTranslations().stream()
-                    .filter(t -> t.getLanguageCode().equalsIgnoreCase(lang))
-                    .findFirst()
-                    .map(t -> t.getTitle())
-                    .orElse(rating.getMovie().getOriginalTitle());
-            res.setMovieTitle(translatedTitle);
-            return res;
-        });
+        Page<RatingResponse> recentRatingResponses = ratingsPage.map(rating -> ratingMapper.toResponse(rating, lang));
+
+        //  TÜM Aktiviteleri çek (Feed görünümü için)
+        Page<Activity> activities = activityRepository.findByUserIdOrderByCreatedDateDesc(user.getId(), pageable);
+
+        //  Map işlemi (DİKKAT: Burada FeedService'deki mantığı kullanıyoruz)
+        Page<ActivityResponse> activityResponses = activities.map(this::mapActivityToResponse);
+
+        //        Page<RatingResponse> recentRatingResponses = ratingsPage.map(rating -> {
+//            RatingResponse res = ratingMapper.toResponse(rating);
+//            String translatedTitle = rating.getMovie().getTranslations().stream()
+//                    .filter(t -> t.getLanguageCode().equalsIgnoreCase(lang))
+//                    .findFirst()
+//                    .map(t -> t.getTitle())
+//                    .orElse(rating.getMovie().getOriginalTitle());
+//            res.setMovieTitle(translatedTitle);
+//            return res;
+//        });
 
         // 5. Response oluştur
         ProfileResponse profile = ProfileResponse.builder()
@@ -108,10 +121,27 @@ public class UserService {
                 .followerCount(followerCount)
                 .followingCount(followingCount)
                 .recentRatings(recentRatingResponses) // Bu artık Page tipinde!
+                .recentActivities(activityResponses)
                 .isFollowing(checkIfCurrentUserFollows(user.getId()))
                 .build();
 
         return success(profile);
+    }
+
+    // Yardımcı Metot: Activity -> ActivityResponse dönüşümü
+    private ActivityResponse mapActivityToResponse(Activity activity) {
+        return ActivityResponse.builder()
+                .id(activity.getId())
+                .userId(activity.getUser().getId())
+                .username(activity.getUser().getUsername())
+                .userAvatar(activity.getUser().getProfilePictureUrl())
+                .type(activity.getType())
+                .targetId(activity.getTargetId())
+                .targetImage(activity.getTargetImage())
+                .targetTitle(activity.getTargetTitle() != null ? activity.getTargetTitle() : "Movie") // Eğer null ise "Movie" yaz
+                .content(activity.getContent())
+                .createdDate(activity.getCreatedDate())
+                .build();
     }
 
     public RestResponse<Page<UserResponse>> searchUsers(String query, Pageable pageable) {
@@ -123,29 +153,13 @@ public class UserService {
     }
 
     private boolean checkIfCurrentUserFollows(UUID targetUserId) {
-        // YENİ: Tek satırda temiz kontrol
         return securityService.getUserIfLoggedIn()
                 .map(currentUser -> followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUserId))
                 .orElse(false);
     }
 
-//    private boolean checkIfCurrentUserFollows(UUID targetUserId) {
-//        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-//
-//        // Eğer giriş yapılmamışsa veya anonimse direkt false dön
-//        if (currentUsername == null || currentUsername.equals("anonymousUser")) {
-//            return false;
-//        }
-//
-//        // Giriş yapan kullanıcıyı bul ve takip tablosunda kontrol et
-//        return userRepository.findByUsername(currentUsername)
-//                .map(currentUser -> followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUserId))
-//                .orElse(false);
-//    }
-
     @Transactional
     public RestResponse<UserResponse> updateProfile(String username, UserProfileUpdateRequest request) {
-        // YENİ: Tek satırda güvenlik kontrolü
         User currentUser = securityService.getCurrentUser();
 
         if (!currentUser.getUsername().equals(username)) {
@@ -156,55 +170,14 @@ public class UserService {
         User updatedUser = userRepository.save(currentUser);
         return success(userMapper.toResponse(updatedUser), messageHelper.getMessage("user.profile.update.success"));
     }
-//    @Transactional
-//    public RestResponse<UserResponse> updateProfile(String username, UserProfileUpdateRequest request) {
-//        //1. Guvenlik Kontrolu: Islemi yapan kisi gercekten o mu?
-//        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-//        if (!currentUsername.equals(username)) {
-//            throw new BusinessException(messageHelper.getMessage("user.unauthorized.update"));
-//        }
-//        //2.Kullaniciyi bul
-//        User user = userRepository.findByUsername(username)
-//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-//        //3.Mapper ile guncelle(firstName, lastName, bio, profilePictureUrl)
-//        userMapper.updateEntityFromRequest(request, user);
-//        //4.Kaydet ve don
-//        User updatedUser = userRepository.save(user);
-//        return success(userMapper.toResponse(updatedUser), messageHelper.getMessage("user.profile.update.success"));
-//    }
 
     public RestResponse<List<UserResponse>> getSuggestedUsers(int limit) {
         int finalLimit = Math.min(limit, 20);
 
-        // YENİ: getUserIfLoggedIn() ile tertemiz yapı
         List<User> users = securityService.getUserIfLoggedIn()
                 .map(user -> userRepository.findSuggestedUsers(user.getId(), finalLimit))
                 .orElseGet(() -> userRepository.findAll().stream().limit(finalLimit).toList());
 
         return success(users.stream().map(userMapper::toResponse).toList(), "Suggestions fetched");
     }
-
-
-//    public RestResponse<List<UserResponse>> getSuggestedUsers(int limit) {
-//        // Ust sinir kontrolu
-//        int finalLimit = Math.min(limit, 20);
-//        // 1. Giriş yapan kullanıcıyı bul
-//        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-//
-//        List<User> users;
-//        if (currentUsername == null || currentUsername.equals("anonymousUser")) {
-//            // Giriş yapmamışsa rastgele herhangi birilerini getir
-//            users = userRepository.findAll().stream().limit(finalLimit).toList();
-//        } else {
-//            User currentUser = userRepository.findByUsername(currentUsername)
-//                    .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-//            // Giriş yapmışsa takip etmediklerini getir
-//            users = userRepository.findSuggestedUsers(currentUser.getId(), limit);
-//        }
-//            List<UserResponse> responses = users.stream()
-//                    .map(userMapper::toResponse)
-//                    .toList();
-//            return success(responses, "Suggestions fetched");
-//    }
-
 }

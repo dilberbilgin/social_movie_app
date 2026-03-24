@@ -1,7 +1,6 @@
 package com.socialmovieclub.service;
 
 import com.socialmovieclub.entity.Activity;
-import com.socialmovieclub.entity.User;
 import com.socialmovieclub.enums.ActivityType;
 import com.socialmovieclub.repository.ActivityRepository;
 import com.socialmovieclub.repository.UserRepository;
@@ -26,7 +25,7 @@ public class ActivityService {
      */
     @Async
     @Transactional
-    public void createActivity(UUID userId, ActivityType type, UUID targetId, String content, String targetImage) {
+    public void createActivity(UUID userId, ActivityType type, UUID targetId, String content, String targetImage, String targetTitle) {
         userRepository.findById(userId).ifPresent(user -> {
             Activity activity = Activity.builder()
                     .user(user)
@@ -34,6 +33,7 @@ public class ActivityService {
                     .targetId(targetId)
                     .content(content)
                     .targetImage(targetImage)
+                    .targetTitle(targetTitle)
                     .build();
             activityRepository.save(activity);
         });

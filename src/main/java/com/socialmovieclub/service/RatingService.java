@@ -7,6 +7,7 @@ import com.socialmovieclub.dto.response.RatingResponse;
 import com.socialmovieclub.entity.Movie;
 import com.socialmovieclub.entity.Rating;
 import com.socialmovieclub.entity.User;
+import com.socialmovieclub.enums.ActivityType;
 import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.mapper.RatingMapper;
 import com.socialmovieclub.repository.MovieRepository;
@@ -34,6 +35,7 @@ public class RatingService {
     private final RatingMapper ratingMapper;
     private final MessageHelper messageHelper;
     private final SecurityService securityService;
+    private final ActivityService activityService;
 
     @Transactional
     public RestResponse<RatingResponse> rateMovie(RatingRequest request) {
@@ -57,15 +59,25 @@ public class RatingService {
         // 4. İSTATİSTİK GÜNCELLEME: Filmin genel ortalamasını tazele
         updateMovieRatingStats(movie);
 
+        // Puanlama yapıldığında activity tablosuna kayıt atıyoruz
+        activityService.createActivity(
+                user.getId(),
+                ActivityType.MOVIE_RATE,
+                movie.getId(),
+                request.getScore() + "/10",
+                movie.getPosterUrl(),
+                movie.getOriginalTitle()
+        );
+
         // 5. RESPONSE HAZIRLAMA
         RatingResponse response = ratingMapper.toResponse(rating);
 
         // Aktif dili alıp başlığı setliyoruz
         String currentLang = LocaleContextHolder.getLocale().getLanguage();
-        response.setMovieTitle(getMovieTitleByLang(movie, currentLang));
 
         response.setNewClubRating(movie.getClubRating());
         response.setNewClubVoteCount(movie.getClubVoteCount());
+        response.setMovieTitle(getMovieTitleByLang(movie, currentLang));
 
         String msgKey = isNew ? "rating.success" : "movie.rating.updated";
         return RestResponse.success(response, messageHelper.getMessage(msgKey));

@@ -25,7 +25,6 @@ public class SecurityService {
         if (username == null || username.equals("anonymousUser")) {
             throw new BusinessException(messageHelper.getMessage("auth.unauthorized"));
         }
-
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
     }
@@ -37,7 +36,6 @@ public class SecurityService {
         if (username == null || username.equals("anonymousUser")) {
             return Optional.empty();
         }
-
         return userRepository.findByUsername(username);
     }
 

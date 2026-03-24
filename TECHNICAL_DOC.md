@@ -34,6 +34,23 @@ Localization (Çeviri) Mantığı: Filmi ana tablo (Movie), çevirileri yan tabl
 
 Neden? Çünkü bir filmin 1 tane çıkış yılı vardır ama 10 tane dilde özeti olabilir. Bu 1-N (Bire-Çok) ilişkidir.
 
+3. Teknik Dokümantasyon İçin "Öğretici" Notlar
+   Dokümanına ekleyebileceğin "Algoritma ve Mantık" kısımları için şu açıklamaları kullanabilirsin:
+
+Merkezi Mesaj ve Dil Yönetimi (i18n)
+"Uygulamada hata ve başarı mesajları kod içerisine gömülmemiştir (Hardcoded değildir). MessageHelper bileşeni, Spring'in LocaleContextHolder yapısını kullanarak kullanıcının tarayıcısından veya profilinden gelen dil bilgisine (Accept-Language) göre doğru mesajı otomatik seçer. Bu, uygulamanın global ölçekte genişletilmesini sağlar."
+
+Güvenlik Filtreleme Algoritması (JWT)
+"Her istek (OncePerRequestFilter), AuthTokenFilter süzgecinden geçer. Algoritma şu sırayla işler:
+
+Header'dan Bearer Token ayıklanır.
+
+JwtUtils ile imza doğruluğu ve süresi kontrol edilir.
+
+Hata varsa request.setAttribute ile hata kodu entry-point'e taşınır.
+
+Geçerli ise SecurityContext güncellenerek istek hedefe ulaştırılır."
+
 4. Dış Dünya ile Bağlantı: TMDB Entegrasyonu
    Filmleri tek tek elle girmek yerine dünyanın en büyük film arşivi olan TMDB'yi kullandık.
 
@@ -233,40 +250,163 @@ Responsive UI: Frontend arayüzü, Tailwind CSS kullanılarak "Mobile First" pre
     1. Backend Klasör ve Dosya Şeması
        Projemiz Katmanlı Mimari (Layered Architecture) prensibiyle inşa edilmiştir. Her klasörün (package) tek bir sorumluluğu vardır:
 
-       social-movie-app
-       ├── src/main/java/com/socialmovieclub
-       │   ├── config                  # Uygulama Ayarları
-       │   │   ├── LocaleConfig        # Dil (i18n) ayarları
-       │   │   ├── MessageConfig       # Mesaj dosyası bağlantıları
-       │   │   ├── RestTemplateConfig  # Dış API (TMDB) haberleşme aracı
-       │   │   ├── SecurityConfig      # Spring Security & Yetkilendirme kapıları
-       │   │   └── WebConfig           # CORS (Frontend erişim) ayarları
-       │   ├── controller              # API Giriş Noktaları (Gelen istekleri karşılar)
-       │   │   ├── AuthController      # Kayıt ve Giriş işlemleri
-       │   │   ├── CommentController   # Yorum CRUD işlemleri
-       │   │   ├── GenreController     # Kategori yönetimi
-       │   │   ├── MovieController     # Film listeleme (Trend/Top-Rated)
-       │   │   ├── RatingController    # Puanlama işlemleri
-       │   │   ├── TmdbController      # TMDB'den veri çekme/import
-       │   │   └── UserController      # Profil ve kullanıcı bilgileri
-       │   ├── core                    # Ortak Çekirdek Yapılar
-       │   │   ├── result              # RestResponse (Ortak cevap zarfı)
-       │   │   └── utils               # MessageHelper (Mesaj yönetimi)
-       │   ├── dto                     # Veri Transfer Objeleri
-       │   │   ├── request             # Frontend'den gelen veriler (Input)
-       │   │   ├── response            # Frontend'e giden veriler (Output)
-       │   │   └── tmdb                # TMDB API'den gelen ham veriler
-       │   ├── entity                  # Veritabanı Tablo Modelleri
-       │   ├── enums                   # Sabit Değerler (Role: ADMIN, USER vb.)
-       │   ├── exception               # Hata Yönetimi (GlobalExceptionHandler)
-       │   ├── mapper                  # Entity <-> DTO Dönüştürücüler (MapStruct)
-       │   ├── repository              # Veritabanı Sorgu Katmanı (JPA)
-       │   ├── security                # JWT ve Güvenlik Filtreleri
-       │   └── service                 # İş Mantığı (Business Logic - Kalp burada atar)
-       └── src/main/resources
-       ├── messages.properties     # Çok dilli mesaj dosyaları (tr, en, de, pt)
-       └── application.properties  # Veritabanı ve sistem ayarları  
-
+        * com.socialmovieclub
+* ├── config (Güvenlik, Protokoller ve Dil Ayarları)
+* │   ├── LocaleConfig.java
+* │   ├── MessageConfig.java
+* │   ├── RestTemplateConfig.java
+* │   ├── SecurityConfig.java
+* │   ├── WebConfig.java
+* │   └── WebSocketConfig.java
+* │
+* ├── controller (REST API Giriş Noktaları)
+* │   ├── AuthController.java
+* │   ├── CommentController.java
+* │   ├── FeedController.java
+* │   ├── FollowController.java
+* │   ├── GenreController.java
+* │   ├── MovieController.java
+* │   ├── MovieLikeController.java
+* │   ├── NotificationController.java
+* │   ├── RatingController.java
+* │   ├── TmdbController.java
+* │   └── UserController.java
+* │
+* ├── core (Altyapı ve Yardımcı Yapılar)
+* │   ├── constant
+* │   │   └── CacheConstants.java
+* │   ├── result
+* │   │   └── RestResponse.java
+* │   └── utils
+* │       └── MessageHelper.java
+* │
+* ├── dto (Veri Transfer Objeleri)
+* │   ├── request
+* │   │   ├── CommentRequest.java
+* │   │   ├── FollowRequest.java
+* │   │   ├── GenreCreateRequest.java
+* │   │   ├── LoginRequest.java
+* │   │   ├── MovieCreateRequest.java
+* │   │   ├── RatingRequest.java
+* │   │   ├── TranslationRequest.java
+* │   │   ├── UserProfileUpdateRequest.java
+* │   │   └── UserRegistrationRequest.java
+* │   ├── response
+* │   │   ├── ActivityResponse.java
+* │   │   ├── CommentResponse.java
+* │   │   ├── CustomPageResponse.java
+* │   │   ├── GenreResponse.java
+* │   │   ├── JwtResponse.java
+* │   │   ├── MovieResponse.java
+* │   │   ├── NotificationResponse.java
+* │   │   ├── ProfileResponse.java
+* │   │   ├── RatingResponse.java
+* │   │   └── UserResponse.java
+* │   └── tmdb
+* │       ├── TmdbGenreDto.java
+* │       ├── TmdbGenreResponse.java
+* │       ├── TmdbMovieDto.java
+* │       └── TmdbSearchResponse.java
+* │
+* ├── entity (Veritabanı Tablo Modelleri)
+* │   ├── Activity.java
+* │   ├── BaseEntity.java
+* │   ├── BaseTranslation.java
+* │   ├── Comment.java
+* │   ├── CommentLike.java
+* │   ├── Follow.java
+* │   ├── Genre.java
+* │   ├── GenreTranslation.java
+* │   ├── Language.java
+* │   ├── Movie.java
+* │   ├── MovieLike.java
+* │   ├── MovieTranslation.java
+* │   ├── Notification.java
+* │   ├── Rating.java
+* │   └── User.java
+* │
+* ├── enums (Sistem Sabitleri)
+* │   ├── ActivityType.java
+* │   ├── NotificationType.java
+* │   └── Role.java
+* │
+* ├── exception (Hata Yönetimi)
+* │   ├── BusinessException.java
+* │   ├── ErrorResponse.java
+* │   └── GlobalExceptionHandler.java
+* │
+* ├── mapper (Nesne Dönüştürücüler)
+* │   ├── CommentMapper.java
+* │   ├── FollowMapper.java
+* │   ├── GenreMapper.java
+* │   ├── MovieMapper.java
+* │   ├── NotificationMapper.java
+* │   ├── RatingMapper.java
+* │   └── UserMapper.java
+* │
+* ├── repository (Veritabanı Erişim Katmanı)
+* │   ├── ActivityRepository.java
+* │   ├── CommentLikeRepository.java
+* │   ├── CommentRepository.java
+* │   ├── FollowRepository.java
+* │   ├── GenreRepository.java
+* │   ├── MovieLikeRepository.java
+* │   ├── MovieRepository.java
+* │   ├── MovieTranslationRepository.java
+* │   ├── NotificationRepository.java
+* │   ├── RatingRepository.java
+* │   └── UserRepository.java
+* │
+* ├── security (Güvenlik ve JWT Yapısı)
+* │   ├── jwt
+* │   │   ├── AuthEntryPointJwt.java
+* │   │   ├── AuthTokenFilter.java
+* │   │   └── JwtUtils.java
+* │   └── service
+* │       └── UserDetailsServiceImpl.java
+* │
+* ├── service (İş Mantığı Katmanı)
+* │   ├── notification.strategy
+* │   │   ├── CommentReplyNotificationStrategy.java
+* │   │   ├── FollowNotificationStrategy.java
+* │   │   ├── LikeNotificationStrategy.java
+* │   │   └── NotificationStrategy.java (Interface)
+* │   ├── ActivityService.java
+* │   ├── AuthService.java
+* │   ├── CommentService.java
+* │   ├── FeedService.java
+* │   ├── FollowService.java
+* │   ├── GenreService.java
+* │   ├── MovieLikeService.java
+* │   ├── MovieService.java
+* │   ├── NotificationService.java
+* │   ├── RatingService.java
+* │   ├── SecurityService.java
+* │   ├── TmdbService.java
+* │   └── UserService.java
+* │
+* ├── SocialMovieAppApplication.java (Uygulama Başlatıcı)
+* │
+* └── resources
+*     ├── static
+*     ├── templates
+*     ├── application.properties
+*     └── Resource Bundle 'messages'
+*         ├── messages.properties
+*         ├── messages_de.properties
+*         ├── messages_pt.properties
+*         └── messages_tr.properties
+*
+* Root Files:
+* ├── .gitattributes
+* ├── .gitignore
+* ├── docker-compose.yml
+* ├── HELP.md
+* ├── mvnw
+* ├── mvnw.cmd
+* ├── pom.xml
+* ├── README.md
+* └── TECHNICAL_DOC.md 
 
     2. API Endpoint ve İşleyiş Rehberi
      Uygulamanın Frontend ile nasıl haberleştiğini gösteren detaylı tablo:

@@ -2,10 +2,9 @@ package com.socialmovieclub.mapper;
 
 import com.socialmovieclub.dto.request.RatingRequest;
 import com.socialmovieclub.dto.response.RatingResponse;
+import com.socialmovieclub.entity.MovieTranslation;
 import com.socialmovieclub.entity.Rating;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Named;
+import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")
 public interface RatingMapper {
@@ -16,6 +15,9 @@ public interface RatingMapper {
     @Mapping(target = "releaseYear", source = "movie.releaseYear")
     @Mapping(target = "movieTitle", ignore = true)
     RatingResponse toResponse(Rating rating);
+
+    // Yeni dil destekli yerler için (UserService için)
+    RatingResponse toResponse(Rating rating, @Context String lang);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
@@ -33,5 +35,20 @@ public interface RatingMapper {
         }
         // Başına TMDB URL'ini ekleyerek tam URL haline getiriyoruz
         return "https://image.tmdb.org/t/p/w500" + (posterPath.startsWith("/") ? "" : "/") + posterPath;
+    }
+
+    @AfterMapping
+    default void setMovieTitle(@MappingTarget RatingResponse response, Rating rating, @Context String lang) {
+        if (rating.getMovie() == null || rating.getMovie().getTranslations() == null) {
+            return;
+        }
+
+        String title = rating.getMovie().getTranslations().stream()
+                .filter(t -> t.getLanguageCode().equalsIgnoreCase(lang))
+                .findFirst()
+                .map(MovieTranslation::getTitle)
+                .orElse(rating.getMovie().getOriginalTitle());
+
+        response.setMovieTitle(title);
     }
 }

@@ -54,7 +54,7 @@ public class MovieLikeService {
 
                 // AKTİVİTE KAYDI: Kullanıcı fikrini değiştirdi (beğendi)
                 if (isLike) {
-                    activityService.createActivity(user.getId(), ActivityType.MOVIE_LIKE, movie.getId(), movie.getOriginalTitle(), movie.getPosterUrl());
+                    activityService.createActivity(user.getId(), ActivityType.MOVIE_LIKE, movie.getId(), movie.getOriginalTitle(), movie.getPosterUrl(), movie.getOriginalTitle());
                 }
             }
         } else {
@@ -67,7 +67,7 @@ public class MovieLikeService {
 
             // AKTİVİTE KAYDI: İlk kez beğendi
             if (isLike) {
-                activityService.createActivity(user.getId(), ActivityType.MOVIE_LIKE, movie.getId(), movie.getOriginalTitle(), movie.getPosterUrl());
+                activityService.createActivity(user.getId(), ActivityType.MOVIE_LIKE, movie.getId(), movie.getOriginalTitle(), movie.getPosterUrl(), movie.getOriginalTitle());
             }
         }
 

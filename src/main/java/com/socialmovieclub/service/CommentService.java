@@ -85,7 +85,7 @@ public class CommentService {
         String preview = comment.getContent().length() > 50
                 ? comment.getContent().substring(0, 47) + "..."
                 : comment.getContent();
-        activityService.createActivity(user.getId(), ActivityType.COMMENT_CREATE, movie.getId(), preview, movie.getPosterUrl());
+        activityService.createActivity(user.getId(), ActivityType.COMMENT_CREATE, movie.getId(), preview, movie.getPosterUrl(), movie.getOriginalTitle());
 
         String successMsg = messageHelper.getMessage("comment.create.success");
         return RestResponse.success(commentMapper.toResponse(savedComment), successMsg);
@@ -146,7 +146,7 @@ public class CommentService {
                 );
                 // Aktivite Oluştur (Takipçilere)
                 String commentPreview = comment.getContent().length() > 30 ? comment.getContent().substring(0, 27) + "..." : comment.getContent();
-                activityService.createActivity(currentUser.getId(), ActivityType.COMMENT_LIKE, comment.getMovie().getId(), commentPreview, comment.getMovie().getPosterUrl());
+                activityService.createActivity(currentUser.getId(), ActivityType.COMMENT_LIKE, comment.getMovie().getId(), commentPreview, comment.getMovie().getPosterUrl(), comment.getMovie().getOriginalTitle());
             }
         }
 

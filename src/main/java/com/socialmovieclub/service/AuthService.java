@@ -47,6 +47,4 @@ public class AuthService {
 
         return RestResponse.success(new JwtResponse(jwt, userDetails.getUsername(), roles), "Login successful");
     }
-
-
 }

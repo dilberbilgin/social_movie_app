@@ -26,6 +26,9 @@ public class ProfileResponse {
     // Kullanıcının son aktiviteleri (Örn: Son verdiği 10 puan)
     private Page<RatingResponse> recentRatings;
 
+    //  Tüm aktiviteler (Beğeni, Yorum, Puan karışık)
+    private Page<ActivityResponse> recentActivities;
+
     // Özel: Eğer giriş yapmış kullanıcı bu profile bakıyorsa, onu takip ediyor mu?
     @JsonProperty("isFollowing")
     private boolean isFollowing;

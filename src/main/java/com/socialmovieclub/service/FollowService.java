@@ -66,7 +66,7 @@ public class FollowService {
         );
 
         // AKTİVİTE KAYDI: X kullanıcısı Y kullanıcısını takip etti
-        activityService.createActivity(follower.getId(), ActivityType.FOLLOW_USER, followingId, following.getUsername(), follower.getProfilePictureUrl());
+        activityService.createActivity(follower.getId(), ActivityType.FOLLOW_USER, followingId, following.getUsername(), follower.getProfilePictureUrl(), following.getUsername());
     }
 
 

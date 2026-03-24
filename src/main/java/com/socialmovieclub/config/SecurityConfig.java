@@ -2,6 +2,7 @@ package com.socialmovieclub.config;
 
 import com.socialmovieclub.security.jwt.AuthEntryPointJwt;
 import com.socialmovieclub.security.jwt.AuthTokenFilter;
+import com.socialmovieclub.security.jwt.JwtUtils;
 import com.socialmovieclub.security.service.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -28,11 +29,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
-    private final AuthEntryPointJwt unauthorizedHandler; // Birazdan oluşturacağız
+    private final AuthEntryPointJwt unauthorizedHandler;
+    private final JwtUtils jwtUtils;
+
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
-        return new AuthTokenFilter();
+        return new AuthTokenFilter(jwtUtils, userDetailsService);
     }
 
     @Bean

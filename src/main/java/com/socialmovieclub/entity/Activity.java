@@ -27,5 +27,7 @@ public class Activity extends BaseEntity {
     private UUID targetId; // FilmId, CommentId veya FollowedUserId
 
     private String content; // Opsiyonel: Yorumun ilk 50 karakteri veya puan değeri gibi
+
     private String targetImage; // Yeni: Poster veya profil resmi URL'i için
+    private String targetTitle;
 }
