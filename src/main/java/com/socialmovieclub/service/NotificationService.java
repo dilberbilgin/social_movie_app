@@ -1,5 +1,6 @@
 package com.socialmovieclub.service;
 
+import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.response.NotificationResponse;
 import com.socialmovieclub.entity.Notification;
 import com.socialmovieclub.entity.User; // EKSİK OLAN BUYDU
@@ -28,6 +29,8 @@ public class NotificationService {
     private final NotificationMapper notificationMapper;
     private final List<NotificationStrategy> strategies;
     private final SimpMessagingTemplate messagingTemplate;
+    private final EmailService emailService;
+    private final MessageHelper messageHelper;
 
     // Uygulama ayağa kalktığında bir kez dolacak
     private Map<NotificationType, NotificationStrategy> strategyMap;
@@ -61,9 +64,49 @@ public class NotificationService {
 
         Notification savedNotification = notificationRepository.save(notification);
 
-        // --- GERÇEK ZAMANLI BİLDİRİM GÖNDERİMİ ---
+        // 1. WebSocket ile anlık bildirim
         sendRealTimeNotification(savedNotification);
 
+        // 2. Email Bildirimi (Arka Planda)
+        sendEmailNotification(savedNotification);
+    }
+
+//    private void sendEmailNotification(Notification n) {
+//        User recipient = n.getRecipient();
+//        String lang = recipient.getPreferredLanguage(); // "tr", "en" vb.
+//
+//        NotificationStrategy strategy = strategyMap.get(n.getType());
+//        if (strategy != null) {
+//            // Konuyu ve içeriği kullanıcının kayıtlı diline göre oluştur
+//            String subject = strategy.buildEmailSubject(n.getActor().getUsername(), lang);
+//            String body = strategy.buildMessage(n.getActor().getUsername(), n.getContent(), lang);
+//
+//            emailService.sendMail(recipient.getEmail(), subject, body);
+//        }
+//    }
+
+    private void sendEmailNotification(Notification n) {
+        User recipient = n.getRecipient();
+        String lang = recipient.getPreferredLanguage();
+
+        NotificationStrategy strategy = strategyMap.get(n.getType());
+        if (strategy != null) {
+            String subject = strategy.buildEmailSubject(n.getActor().getUsername(), lang);
+            String body = strategy.buildMessage(n.getActor().getUsername(), n.getContent(), lang);
+
+            // Link oluşturma (Frontend URL'ine yönlendirme)
+            String actionUrl = "http://localhost:3000/notifications";
+            String buttonText = messageHelper.getMessage("mail.button.view", lang);
+
+            emailService.sendHtmlMail(
+                    recipient.getEmail(),
+                    subject,
+                    subject, // Title olarak da subject'i gönderiyoruz
+                    body,
+                    actionUrl,
+                    buttonText
+            );
+        }
     }
 
     private void sendRealTimeNotification(Notification notification) {
@@ -73,7 +116,7 @@ public class NotificationService {
         // 2. Mesajı strateji ile oluşturuyoruz
         NotificationStrategy strategy = strategyMap.get(notification.getType());
         if (strategy != null) {
-            String msg = strategy.buildMessage(notification.getActor().getUsername(), notification.getContent());
+            String msg = strategy.buildMessage(notification.getActor().getUsername(), notification.getContent(), notification.getRecipient().getPreferredLanguage());
             response.setMessage(msg);
         }
 
@@ -107,7 +150,7 @@ public class NotificationService {
         NotificationResponse res = notificationMapper.toResponse(n);
         NotificationStrategy strategy = strategyMap.get(n.getType());
         if (strategy != null) {
-            res.setMessage(strategy.buildMessage(n.getActor().getUsername(), n.getContent()));
+            res.setMessage(strategy.buildMessage(n.getActor().getUsername(), n.getContent(), n.getRecipient().getPreferredLanguage()));
         }
         return res;
     }

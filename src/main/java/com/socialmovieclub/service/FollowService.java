@@ -125,23 +125,5 @@ public class FollowService {
                 .ifPresent(followRepository::delete);
     }
 
-//    public void unfollowUser(UUID followingId, String currentUsername) {
-//        // 1. İşlemi yapan kullanıcıyı bul
-//        User follower = userRepository.findByUsername(currentUsername)
-//                .orElseThrow(() -> new BusinessException("User not found: " + currentUsername));
-//
-//        // 2. Takip kaydını bul
-//        Follow follow = followRepository.findByFollowerIdAndFollowingId(follower.getId(), followingId)
-//                .orElseThrow(() -> new BusinessException("Follow relationship not found"));
-//
-//        // 3. Sil
-//        followRepository.delete(follow);
-//    }
-
-//    public List<UserResponse> getFollowers(UUID userId) {
-//        return followRepository.findAllByFollowingId(userId).stream()
-//                .map(followMapper::toFollowerResponse)
-//                .toList();
-//    }
 
 }

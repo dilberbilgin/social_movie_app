@@ -16,8 +16,13 @@ public class CommentReplyNotificationStrategy implements NotificationStrategy {
     }
 
     @Override
-    public String buildMessage(String actorName, String targetTitle) {
+    public String buildMessage(String actorName, String targetTitle, String lang) {
         // notification.comment_reply={0} senin yorumuna yanıt verdi: "{1}"
-        return messageHelper.getMessage("notification.comment_reply", actorName, targetTitle);
+        return messageHelper.getMessage("notification.comment_reply", lang, actorName, targetTitle);
+    }
+
+    @Override
+    public String buildEmailSubject(String actorName, String lang) {
+        return messageHelper.getMessage("mail.subject.comment_reply", lang, actorName);
     }
 }

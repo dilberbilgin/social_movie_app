@@ -39,4 +39,7 @@ public class User extends BaseEntity {
 
     private String bio;
     private String profilePictureUrl;
+
+    @Column(length = 5)
+    private String preferredLanguage = "en"; // Varsayılan en
 }
