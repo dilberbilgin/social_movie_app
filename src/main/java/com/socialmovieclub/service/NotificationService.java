@@ -10,6 +10,7 @@ import com.socialmovieclub.repository.NotificationRepository;
 import com.socialmovieclub.service.notification.strategy.NotificationStrategy;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -85,6 +86,9 @@ public class NotificationService {
 //        }
 //    }
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     private void sendEmailNotification(Notification n) {
         User recipient = n.getRecipient();
         String lang = recipient.getPreferredLanguage();
@@ -95,7 +99,7 @@ public class NotificationService {
             String body = strategy.buildMessage(n.getActor().getUsername(), n.getContent(), lang);
 
             // Link oluşturma (Frontend URL'ine yönlendirme)
-            String actionUrl = "http://localhost:3000/notifications";
+            String actionUrl = frontendUrl + "/notifications";
             String buttonText = messageHelper.getMessage("mail.button.view", lang);
 
             emailService.sendHtmlMail(
