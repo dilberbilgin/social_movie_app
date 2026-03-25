@@ -17,14 +17,15 @@ import com.socialmovieclub.repository.MovieRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static com.socialmovieclub.core.result.RestResponse.success;
 
@@ -248,7 +249,64 @@ public class TmdbService {
 //        throw new BusinessException(messageHelper.getMessage("tmdb.search.error"));
 //    }
     }
+
+    // TmdbService.java içine ekle
+
+    public RestResponse<Page<MovieResponse>> discoverMoviesFromTmdb(UUID genreId, String lang, int tmdbPage, Pageable pageable) {
+        try {
+            // Tür eşleşmesi için TMDB ID'sini bulalım
+            Long tmdbGenreId = null;
+            if (genreId != null) {
+                tmdbGenreId = genreRepository.findById(genreId)
+                        .map(Genre::getTmdbId)
+                        .orElse(null);
+            }
+
+            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
+                    .queryParam("api_key", apiKey)
+                    .queryParam("language", lang)
+                    .queryParam("sort_by", "popularity.desc")
+                    .queryParam("page", tmdbPage);
+
+            if (tmdbGenreId != null) {
+                builder.queryParam("with_genres", tmdbGenreId);
+            }
+
+            TmdbSearchResponse response = restTemplate.getForObject(builder.toUriString(), TmdbSearchResponse.class);
+
+            if (response == null || response.getResults() == null) {
+                return success(Page.empty());
+            }
+
+            // TMDB'den gelenleri bizim MovieResponse formatına çevir
+            List<MovieResponse> movies = response.getResults().stream()
+                    .map(dto -> {
+                        MovieResponse res = movieMapper.toResponseFromTmdb(dto, lang);
+                        // Bu filmler henüz DB'de olmadığı için Like/Comment sayıları 0 olacak
+                        res.setLikeCount(0L);
+                        res.setCommentCount(0L);
+                        res.setClubRating(0.0);
+                        return res;
+                    })
+                    .toList();
+
+            // Spring Page nesnesi oluşturup dönüyoruz (Frontend Infinite Scroll bozulmasın diye)
+//            Page<MovieResponse> pageResult = new PageImpl<>(movies, PageRequest.of(tmdbPage - 1, 20), response.getTotalResults());
+
+            Page<MovieResponse> pageResult = new PageImpl<>(
+                    movies,
+                    pageable, // Methoda Pageable pageable parametresini de ekleyip buraya paslayın
+                    5000      // Sabit yüksek değer veya response.getTotalResults() + totalLocalElements
+            );
+            return success(pageResult);
+
+        } catch (Exception e) {
+            return success(Page.empty());
+        }
+    }
 }
+
+
 
 
 //importMOvie icinde

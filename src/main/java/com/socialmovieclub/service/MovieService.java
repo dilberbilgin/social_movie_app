@@ -12,6 +12,9 @@ import com.socialmovieclub.mapper.MovieMapper;
 import com.socialmovieclub.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -37,6 +40,7 @@ public class MovieService {
     private final MovieLikeRepository movieLikeRepository;
     private final CommentRepository commentRepository;
     private final SecurityService securityService;
+    private final TmdbService tmdbService;
 
 
 
@@ -77,17 +81,30 @@ public class MovieService {
         return success(responseData, successMsg);
     }
 
-    public RestResponse<List<MovieResponse>> getAllMovies(String lang) {
-        List<Movie> movies = movieRepository.findAll();
+//    public RestResponse<List<MovieResponse>> getAllMovies(String lang) {
+//        List<Movie> movies = movieRepository.findAll();
+//
+//        // 1. Listeyi dile göre çevirip Response DTO listesine dönüştür
+//        List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
+//
+//        enrichMovieListWithLikes(responseData);
+//
+//        // 2. Bunu RestResponse zarfına koyup dön
+//        return success(responseData);
+//    }
+public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable pageable) {
+    // 1. Veritabanından sayfalı çek
+    Page<Movie> moviePage = movieRepository.findAll(pageable);
 
-        // 1. Listeyi dile göre çevirip Response DTO listesine dönüştür
-        List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
+    // 2. Page içeriğini map'le (Page.map metodu çok kullanışlıdır)
+    Page<MovieResponse> responsePage = moviePage.map(movie -> {
+        MovieResponse dto = movieMapper.toResponse(movie, lang);
+        enrichMovieWithLikes(dto); // Like verilerini her film için doldur
+        return dto;
+    });
 
-        enrichMovieListWithLikes(responseData);
-
-        // 2. Bunu RestResponse zarfına koyup dön
-        return success(responseData);
-    }
+    return success(responsePage);
+}
 
     public RestResponse<List<MovieResponse>> getTopRatedMovies(String lang) {
         List<Movie> movies = movieRepository.findTop10ByOrderByClubRatingDesc();
@@ -149,8 +166,29 @@ public class MovieService {
         dtos.forEach(this::enrichMovieWithLikes);
     }
 
-    public RestResponse<List<MovieResponse>> searchMovies(String title, UUID genreId, String lang) {
-        // Dinamik sorgu oluşturucu
+//    public RestResponse<List<MovieResponse>> searchMovies(String title, UUID genreId, String lang) {
+//        // Dinamik sorgu oluşturucu
+//        Specification<Movie> spec = Specification.where(null);
+//
+//        if (title != null && !title.isEmpty()) {
+//            spec = spec.and((root, query, cb) ->
+//                    cb.like(cb.lower(root.get("originalTitle")), "%" + title.toLowerCase() + "%"));
+//        }
+//
+//        if (genreId != null) {
+//            // Many-to-Many ilişkide genre üzerinden filtreleme
+//            spec = spec.and((root, query, cb) ->
+//                    cb.equal(root.join("genres").get("id"), genreId));
+//        }
+//
+//        List<Movie> movies = movieRepository.findAll(spec);
+//        List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
+//        enrichMovieListWithLikes(responseData);
+//        return success(responseData);
+//    }
+
+    // Arama kısmını da sayfalayalım (Asıl Infinite Scroll burada lazım olacak)
+    public RestResponse<Page<MovieResponse>> searchMovies(String title, UUID genreId, String lang, Pageable pageable) {
         Specification<Movie> spec = Specification.where(null);
 
         if (title != null && !title.isEmpty()) {
@@ -159,16 +197,111 @@ public class MovieService {
         }
 
         if (genreId != null) {
-            // Many-to-Many ilişkide genre üzerinden filtreleme
             spec = spec.and((root, query, cb) ->
                     cb.equal(root.join("genres").get("id"), genreId));
         }
 
-        List<Movie> movies = movieRepository.findAll(spec);
-        List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
-        enrichMovieListWithLikes(responseData);
-        return success(responseData);
+        Page<Movie> moviePage = movieRepository.findAll(spec, pageable);
+
+        Page<MovieResponse> responsePage = moviePage.map(movie -> {
+            MovieResponse dto = movieMapper.toResponse(movie, lang);
+            enrichMovieWithLikes(dto);
+            return dto;
+        });
+
+        return success(responsePage);
     }
+
+
+//    public RestResponse<Page<MovieResponse>> getDiscoverMovies(UUID genreId, String lang, Pageable pageable) {
+//        Specification<Movie> spec = Specification.where(null);
+//        if (genreId != null) {
+//            spec = spec.and((root, query, cb) -> cb.equal(root.join("genres").get("id"), genreId));
+//        }
+//
+//        Page<Movie> localMovies = movieRepository.findAll(spec, pageable);
+//
+//        // EĞER: Yerel veritabanında bu sayfa için hiç içerik yoksa TMDB'ye git
+//        if (localMovies.isEmpty()) {
+//            // Yerel veritabanındaki toplam sayfa sayısını bul
+//            long totalLocalElements = movieRepository.count(spec);
+//            int localPages = (int) Math.ceil((double) totalLocalElements / pageable.getPageSize());
+//
+//            // TMDB'den kaçıncı sayfayı isteyeceğimizi hesapla
+//            int tmdbPageToRequest = pageable.getPageNumber() - localPages + 1;
+//
+//            if (tmdbPageToRequest > 0) {
+//                return tmdbService.discoverMoviesFromTmdb(genreId, lang, tmdbPageToRequest);
+//            }
+//        }
+//
+//        // Yerel verileri dön
+//        return success(localMovies.map(m -> {
+//            MovieResponse res = movieMapper.toResponse(m, lang);
+//            enrichMovieWithLikes(res);
+//            return res;
+//        }));
+//    }
+
+    public RestResponse<Page<MovieResponse>> getDiscoverMovies(UUID genreId, String lang, Pageable pageable) {
+        Specification<Movie> spec = Specification.where(null);
+        if (genreId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.join("genres").get("id"), genreId));
+        }
+
+        long totalLocalElements = movieRepository.count(spec);
+        // Örn: 10 film var, size 20 ise localPages 1 çıkar.
+        int localPages = (int) Math.ceil((double) totalLocalElements / pageable.getPageSize());
+
+        // EĞER: İstenen sayfa yerel sınırları aştıysa VEYA yerel DB boşsa
+        if (pageable.getPageNumber() >= localPages || totalLocalElements == 0) {
+            // TMDB'den kaçıncı sayfayı isteyeceğiz?
+            // Eğer yerel sayfa 1 ise ve biz 1. sayfayı (2. sayfa) istiyorsak, TMDB'den 1. sayfasını isteriz.
+            int tmdbPageToRequest = pageable.getPageNumber() - (totalLocalElements == 0 ? 0 : localPages) + 1;
+
+            // ÖNEMLİ: TmdbService'e pageable nesnesini de gönderin ki totalResults düzgün dönsün
+            return tmdbService.discoverMoviesFromTmdb(genreId, lang, tmdbPageToRequest, pageable);
+        }
+
+        Page<Movie> localMovies = movieRepository.findAll(spec, pageable);
+
+        // KRİTİK NOKTA: Eğer yerel sayfa SON sayfaysa bile 'last' değerini false yapmalıyız
+        // çünkü arkasından TMDB verileri gelecek.
+        Page<MovieResponse> mappedPage = localMovies.map(m -> {
+            MovieResponse res = movieMapper.toResponse(m, lang);
+            enrichMovieWithLikes(res);
+            return res;
+        });
+
+        // Toplam sayıyı manuel çok yüksek veriyoruz ki frontend "daha var" desin
+        return success(new PageImpl<>(mappedPage.getContent(), pageable, totalLocalElements + 5000));
+    }
+
+//    public RestResponse<Page<MovieResponse>> getDiscoverMovies(UUID genreId, String lang, Pageable pageable) {
+//        Specification<Movie> spec = Specification.where(null);
+//        if (genreId != null) {
+//            spec = spec.and((root, query, cb) -> cb.equal(root.join("genres").get("id"), genreId));
+//        }
+//
+//        // 1. Önce yerel DB'deki toplam sayıyı bul
+//        long totalLocalElements = movieRepository.count(spec);
+//        int localPages = (int) Math.ceil((double) totalLocalElements / pageable.getPageSize());
+//
+//        // 2. Eğer istenen sayfa yerel sayfaların ötesindeyse TMDB'ye git
+//        if (pageable.getPageNumber() >= localPages) {
+//            int tmdbPageToRequest = pageable.getPageNumber() - localPages + 1;
+//            // TMDB verisini dönerken toplam sayıyı (local + TMDB'deki binlerce film) simüle etmeliyiz
+//            return tmdbService.discoverMoviesFromTmdb(genreId, lang, tmdbPageToRequest);
+//        }
+//
+//        // 3. Yerel verileri dön
+//        Page<Movie> localMovies = movieRepository.findAll(spec, pageable);
+//        return success(localMovies.map(m -> {
+//            MovieResponse res = movieMapper.toResponse(m, lang);
+//            enrichMovieWithLikes(res);
+//            return res;
+//        }));
+//    }
 
 
 }

@@ -6,6 +6,8 @@ import com.socialmovieclub.dto.response.MovieResponse;
 import com.socialmovieclub.service.MovieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,16 +38,23 @@ public class MovieController {
 //        return ResponseEntity.ok(RestResponse.success(response));
 //    }
 
-    @GetMapping
-    public RestResponse<List<MovieResponse>> getAllMovies(
-            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+//    @GetMapping
+//    public RestResponse<List<MovieResponse>> getAllMovies(
+//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+//
+////        List<MovieResponse> data = movieService.getAllMovies(lang);
+////        return success(data);
+//
+//        // Service zaten RestResponse<List<MovieResponse>> dönüyor.
+//        return movieService.getAllMovies(lang);
+//    }
 
-//        List<MovieResponse> data = movieService.getAllMovies(lang);
-//        return success(data);
-
-        // Service zaten RestResponse<List<MovieResponse>> dönüyor.
-        return movieService.getAllMovies(lang);
-    }
+@GetMapping
+public RestResponse<Page<MovieResponse>> getAllMovies(
+        @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+        Pageable pageable) { // Spring bunu otomatik çözer
+    return movieService.getAllMovies(lang, pageable);
+}
 
     // En yüksek puanlılar
     @GetMapping("/top-rated")
@@ -68,12 +77,30 @@ public class MovieController {
         return movieService.getMovieById(id, lang);
     }
 
+//    @GetMapping("/search")
+//    public RestResponse<List<MovieResponse>> searchMovies(
+//            @RequestParam(required = false) String title,
+//            @RequestParam(required = false) UUID genreId,
+//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang
+//    ) {
+//        return movieService.searchMovies(title, genreId, lang);
+//    }
+
     @GetMapping("/search")
-    public RestResponse<List<MovieResponse>> searchMovies(
+    public RestResponse<Page<MovieResponse>> searchMovies(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) UUID genreId,
-            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+            Pageable pageable
     ) {
-        return movieService.searchMovies(title, genreId, lang);
+        return movieService.searchMovies(title, genreId, lang, pageable);
+    }
+
+    @GetMapping("/discover")
+    public RestResponse<Page<MovieResponse>> discover(
+            @RequestParam(required = false) UUID genreId,
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+            Pageable pageable) {
+        return movieService.getDiscoverMovies(genreId, lang, pageable);
     }
 }

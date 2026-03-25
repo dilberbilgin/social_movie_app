@@ -20,4 +20,10 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
 
     // Belirli bir kullanıcının kendi aktivitelerini getir (Profil sayfası için gerekebilir)
     Page<Activity> findByUserIdOrderByCreatedDateDesc(UUID userId, Pageable pageable);
+
+//    // Sadece takip ettiğim kişilerin aktivitelerini getir (Instagram/Twitter mantığı)
+//    @Query("SELECT a FROM Activity a WHERE a.user.id IN " +
+//            "(SELECT f.following.id FROM Follow f WHERE f.follower.id = :currentUserId) " +
+//            "ORDER BY a.createdDate DESC")
+//    Page<Activity> findFollowingActivities(UUID currentUserId, Pageable pageable);
 }
