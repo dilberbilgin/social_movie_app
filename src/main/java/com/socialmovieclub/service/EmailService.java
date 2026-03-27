@@ -48,27 +48,3 @@ public class EmailService {
         }
     }
 }
-//public class EmailService {
-//    private final JavaMailSender mailSender;
-//    private final TemplateEngine templateEngine;
-//
-//    @Async // Bu işlem artık ana thread'i bloklamayacak, arka planda çalışacak.
-//    public void sendMail(String to, String subject, String body) {
-//        try{
-//            log.info("Email gonderiliyor: {}", to);
-//
-//            SimpleMailMessage message = new SimpleMailMessage();
-//            message.setFrom("SocialMovieClub <noreply@socialmovieclub.com>");
-//            message.setTo(to);;
-//            message.setSubject(subject);
-//            message.setText(body);
-//
-//            mailSender.send(message);
-//
-//            log.info("Email basariyla gonderildi: {}", to);
-//        } catch (Exception e) {
-//            log.error("Email gonderim hatasi ({}): {}", to, e.getMessage());
-//            // Mail gönderilemezse uygulama hata vermesin diye sadece logluyoruz
-//        }
-//    }
-//}

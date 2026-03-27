@@ -52,7 +52,6 @@ public class UserController {
         return userService.updateProfile(username, request);
     }
 
-    // Arama: List yerine Page dönüyor ve sayfalama parametresi alıyor
     @GetMapping("/search")
     public RestResponse<Page<UserResponse>> searchUsers(
             @RequestParam String query,

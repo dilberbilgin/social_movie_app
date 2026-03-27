@@ -72,20 +72,6 @@ public class NotificationService {
         sendEmailNotification(savedNotification);
     }
 
-//    private void sendEmailNotification(Notification n) {
-//        User recipient = n.getRecipient();
-//        String lang = recipient.getPreferredLanguage(); // "tr", "en" vb.
-//
-//        NotificationStrategy strategy = strategyMap.get(n.getType());
-//        if (strategy != null) {
-//            // Konuyu ve içeriği kullanıcının kayıtlı diline göre oluştur
-//            String subject = strategy.buildEmailSubject(n.getActor().getUsername(), lang);
-//            String body = strategy.buildMessage(n.getActor().getUsername(), n.getContent(), lang);
-//
-//            emailService.sendMail(recipient.getEmail(), subject, body);
-//        }
-//    }
-
     @Value("${app.frontend-url}")
     private String frontendUrl;
 

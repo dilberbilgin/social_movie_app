@@ -99,17 +99,6 @@ public class UserService {
         //  Map işlemi (DİKKAT: Burada FeedService'deki mantığı kullanıyoruz)
         Page<ActivityResponse> activityResponses = activities.map(this::mapActivityToResponse);
 
-        //        Page<RatingResponse> recentRatingResponses = ratingsPage.map(rating -> {
-//            RatingResponse res = ratingMapper.toResponse(rating);
-//            String translatedTitle = rating.getMovie().getTranslations().stream()
-//                    .filter(t -> t.getLanguageCode().equalsIgnoreCase(lang))
-//                    .findFirst()
-//                    .map(t -> t.getTitle())
-//                    .orElse(rating.getMovie().getOriginalTitle());
-//            res.setMovieTitle(translatedTitle);
-//            return res;
-//        });
-
         // 5. Response oluştur
         ProfileResponse profile = ProfileResponse.builder()
                 .id(user.getId())

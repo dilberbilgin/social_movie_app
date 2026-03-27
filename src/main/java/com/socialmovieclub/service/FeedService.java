@@ -79,26 +79,6 @@ public class FeedService {
             }
             return res;
         });
-//        Page<ActivityResponse> response = activities.map(activity -> {
-//            Movie movie = movieMap.get(activity.getTargetId());
-//            ActivityResponse res = mapToResponse(activity, movie);
-//
-//            // --- GERÇEK SAYILARI SETLE ---
-//            if (movie != null) {
-//                // MovieResponse'da yaptığımız gibi film istatistiklerini ekliyoruz
-//                res.setLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(movie.getId()));
-//                // Yorum sayısını çekmek için commentRepository.countByMovieId eklenebilir
-//                // res.setCommentCount(commentRepository.countByMovieId(movie.getId()));
-//            }
-//
-//            // Mevcut kullanıcının reaksiyonu
-//            securityService.getUserIfLoggedIn().ifPresent(user -> {
-//                movieLikeRepository.findByUserIdAndMovieId(user.getId(), activity.getTargetId())
-//                        .ifPresent(like -> res.setUserReaction(like.isLiked()));
-//            });
-//
-//            return res;
-//        });
 
         return RestResponse.success(CustomPageResponse.of(response));
     }

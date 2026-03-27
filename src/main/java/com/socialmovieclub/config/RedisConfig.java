@@ -18,7 +18,7 @@ public class RedisConfig {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        // KRİTİK: Jackson'a nesne tiplerini JSON içine yazmasını söylüyoruz.
+        // Jackson'a nesne tiplerini JSON içine yazmasını söylüyoruz.
         // Bu sayede geri okurken LinkedHashMap yerine gerçek sınıfını (RestResponse) bulur.
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),

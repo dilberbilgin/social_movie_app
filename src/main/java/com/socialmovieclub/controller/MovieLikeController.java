@@ -13,11 +13,6 @@ import java.util.UUID;
 public class MovieLikeController {
     private final MovieLikeService movieLikeService;
 
-//    @PostMapping("/like")
-//    public RestResponse<Void> likeMovie(@PathVariable UUID movieId) {
-//        return movieLikeService.handleMovieReaction(movieId, true);
-//    }
-
     @PostMapping("/like")
     public RestResponse<UUID> likeMovie(
             @PathVariable UUID movieId,
@@ -25,11 +20,6 @@ public class MovieLikeController {
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
         return movieLikeService.handleMovieReaction(movieId, tmdbId, true, lang);
     }
-
-//    @PostMapping("/dislike")
-//    public RestResponse<Void> dislikeMovie(@PathVariable UUID movieId) {
-//        return movieLikeService.handleMovieReaction(movieId, false);
-//    }
 
     @PostMapping("/dislike")
     public RestResponse<UUID> dislikeMovie(

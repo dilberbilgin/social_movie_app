@@ -69,7 +69,6 @@ public class FollowService {
         activityService.createActivity(follower.getId(), ActivityType.FOLLOW_USER, followingId, following.getUsername(), follower.getProfilePictureUrl(), following.getUsername());
     }
 
-
     public Page<UserResponse> getFollowers(UUID userId, Pageable pageable) {
         Optional<User> currentUser = securityService.getUserIfLoggedIn();
 
@@ -124,6 +123,4 @@ public class FollowService {
         followRepository.findByFollowerIdAndFollowingId(follower.getId(), followingId)
                 .ifPresent(followRepository::delete);
     }
-
-
 }

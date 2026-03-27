@@ -30,7 +30,6 @@ public class MovieLikeService {
     private final SecurityService securityService;
     private final MovieService movieService;
 
-
     @Transactional
     @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true) // Cache'i temizler, sayı güncellenir
     public RestResponse<UUID> handleMovieReaction(UUID movieId, Long tmdbId, boolean isLike, String lang) {
@@ -44,9 +43,7 @@ public class MovieLikeService {
             movie = movieRepository.findById(movieId)
                     .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
         }
-//        Movie movie = movieRepository.findById(movieId)
-//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
-        UUID finalMovieId = movie.getId();
+      UUID finalMovieId = movie.getId();
 
         Optional<MovieLike> existing = movieLikeRepository.findByUserIdAndMovieId(user.getId(), movie.getId());
         String messageKey;
@@ -56,8 +53,6 @@ public class MovieLikeService {
             if (like.isLiked() == isLike) {
                 movieLikeRepository.delete(like);
                 messageKey = "movie.reaction.removed";
-                // Not: Reaksiyon silindiğinde aktiviteyi silmek veya
-                // "vazgeçti" aktivitesi eklemek tercihe bağlıdır. Şimdilik yeni eklemeleri takip edelim.
             } else {
                 like.setLiked(isLike);
                 movieLikeRepository.save(like);

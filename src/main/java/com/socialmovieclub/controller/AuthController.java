@@ -21,15 +21,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService; // Login için
-    private final UserService userService; // Kayıt için (Eskisinden çekiyoruz)
+    private final UserService userService; // Kayıt için
 
     @PostMapping("/signup")
     public RestResponse<UserResponse> signup(@Valid @RequestBody UserRegistrationRequest request) {
-        return userService.register(request); // İşi UserService'e pasladık
+        return userService.register(request); // İşi UserService
     }
 
     @PostMapping("/login")
     public ResponseEntity<RestResponse<JwtResponse>> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request)); // İşi AuthService'e pasladık
+        return ResponseEntity.ok(authService.login(request)); // İşi AuthService'e
     }
 }

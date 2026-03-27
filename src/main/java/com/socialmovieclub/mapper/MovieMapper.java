@@ -43,8 +43,6 @@ public interface MovieMapper {
     // Entity'deki genres -> Response'daki genres
     MovieResponse toResponse(Movie movie, @Context String languageCode);
 
-
-
     // ÇOKLU DÖNÜŞÜM: MapStruct otomatik olarak yukarıdaki metodu kullanır
     List<MovieResponse> toResponseList(List<Movie> movies, @Context String languageCode);
 
@@ -72,7 +70,6 @@ public interface MovieMapper {
         response.setTitle(translation.getTitle());
         response.setDescription(translation.getDescription());
     }
-
 
     // TMDB DTO -> Response
    // @Mapping(target = "id", ignore = true) // DB'de olmadığı için UUID'si yok
@@ -129,8 +126,3 @@ public interface MovieMapper {
         return "https://image.tmdb.org/t/p/w500" + (posterPath.startsWith("/") ? "" : "/") + posterPath;
     }
 }
-
-/*
-poster url gelen veri /p96dm... gibi bir path ise başına
-TMDB URL'ini ekliyor, eğer tam bir URL ise dokunmuyor.
-* */

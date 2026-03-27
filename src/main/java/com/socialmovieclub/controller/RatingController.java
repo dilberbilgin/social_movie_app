@@ -20,11 +20,6 @@ public class RatingController {
 
     private final RatingService ratingService;
 
-//    @PostMapping
-//    public RestResponse<RatingResponse> addOrUpdateRating(@Valid @RequestBody RatingRequest request) {
-//        return ratingService.rateMovie(request);
-//    }
-
     @PostMapping
     public RestResponse<RatingResponse> addOrUpdateRating(
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
@@ -43,6 +38,4 @@ public class RatingController {
     public RestResponse<Void> deleteRating(@PathVariable UUID movieId) {
         return ratingService.deleteRating(movieId);
     }
-
-
 }

@@ -33,7 +33,6 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final MovieRepository movieRepository;
-    private final UserRepository userRepository;
     private final CommentMapper commentMapper;
     private final MessageHelper messageHelper;
     private final CommentLikeRepository commentLikeRepository;
@@ -91,7 +90,6 @@ public class CommentService {
         return RestResponse.success(commentMapper.toResponse(savedComment), successMsg);
         //return RestResponse.success(commentMapper.toResponse(savedComment), messageHelper.getMessage("comment.create.success"));
     }
-
 
     public RestResponse<Page<CommentResponse>> getMovieComments(UUID movieId, Pageable pageable) {
         Page<Comment> commentPage = commentRepository.findByMovieIdAndParentIsNullAndDeletedFalseOrderByCreatedDateDesc(movieId, pageable);
@@ -189,7 +187,6 @@ public class CommentService {
         Comment parent = commentRepository.findById(parentId)
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("comment.parent.not.found")));
 
-        // Instagram Mantığı: Sadece 2 seviyeli derinlik (Threaded değil, Nested)
         // Eğer parent'ın da bir parent'ı varsa, bu cevabı ana parent'a bağla.YORUMLAR COK KAYMAMASI ICIN
         if (parent.getParent() != null) {
             child.setParent(parent.getParent());

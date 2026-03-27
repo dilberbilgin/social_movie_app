@@ -50,14 +50,6 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
         return movieService.getTrendingMovies(lang);
     }
 
-//    @GetMapping("/{id}")
-//    public RestResponse<MovieResponse> getMovieDetail(
-//            @PathVariable UUID id, // Eğer ID tipin UUID ise
-//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-//
-//        return movieService.getMovieById(id, lang);
-//    }
-
     @GetMapping("/{id}")
     public RestResponse<MovieResponse> getMovieDetail(
             @PathVariable UUID id,
@@ -67,15 +59,6 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
         // Eski metot (getMovieById) yerine yeni yazdığımız (getMovieDetail) metodunu çağırıyoruz
         return movieService.getMovieDetail(id, tmdbId, lang);
     }
-
-//    @GetMapping("/search")
-//    public RestResponse<List<MovieResponse>> searchMovies(
-//            @RequestParam(required = false) String title,
-//            @RequestParam(required = false) UUID genreId,
-//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang
-//    ) {
-//        return movieService.searchMovies(title, genreId, lang);
-//    }
 
     @GetMapping("/search")
     public RestResponse<Page<MovieResponse>> searchMovies(

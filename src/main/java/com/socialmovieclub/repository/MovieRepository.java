@@ -16,27 +16,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-//public interface MovieRepository extends JpaRepository<Movie, Long> {
-//
-//    // Aynı isim ve yılda film var mı?
-//    boolean existsByOriginalTitleAndReleaseYear(String originalTitle, Integer releaseYear);
-//}
-
-//JpaSpecificationExecutor ekleyerek dinamik sorgu yeteneği kazandırıyoruz.
 public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecificationExecutor<Movie> { // Burası UUID oldu
     boolean existsByOriginalTitleAndReleaseYear(String originalTitle, Integer releaseYear);
 
-//    @EntityGraph(attributePaths = {"genres", "translations"})
-//    List<Movie> findAll(); // Tüm filmleri kategorileri ve çevirileriyle TEK sorguda getirir
-
-    // Sayfalamalı ve EntityGraph'lı ana sorgu
     @EntityGraph(attributePaths = {"genres", "translations"})
     Page<Movie> findAll(Specification<Movie> spec, Pageable pageable);
 
     // List yerine Page dönecek şekilde güncelliyoruz
     @EntityGraph(attributePaths = {"genres", "translations"})
     Page<Movie> findAll(Pageable pageable);
-
 
     boolean existsByTmdbId(Long tmdbId);
 

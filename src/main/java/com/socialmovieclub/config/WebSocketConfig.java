@@ -28,12 +28,4 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws-notifications")
                 .setAllowedOriginPatterns("*"); // .withSockJS() kısmını sildik
     }
-
-//    @Override
-//    public void registerStompEndpoints(StompEndpointRegistry registry) {
-//        // Frontend'in bağlanacağı URL: ws://localhost:8080/ws-notifications
-//        registry.addEndpoint("/ws-notifications")
-//                .setAllowedOriginPatterns("*") // CORS ayarı: Frontend portuna göre kısıtlanabilir
-//                .withSockJS(); // Tarayıcı desteği yoksa SockJS'e düşer
-//    }
 }

@@ -65,7 +65,7 @@ public class TmdbService {
                         continue; // Varsa geç
                     }
 
-                    // 2. tmdbId yok ama BU İSİMDE bir kategori var mı? (Senin manuel eklediklerin için)
+                    // 2. tmdbId yok ama BU İSİMDE bir kategori var mı? ( manuel eklediklerim için)
                     // GenreRepository'de Optional<Genre> findByName(String name) olmalı.
                     Optional<Genre> existingGenre = genreRepository.findByName(genreName);
 
@@ -83,7 +83,6 @@ public class TmdbService {
                     }
                 }
             }
-            // Başarı mesajını buradan dönüyoruz
             return success(null, messageHelper.getMessage("tmdb.sync.success"));
         } catch (Exception e) {
             e.printStackTrace(); // Konsola hatanın detayını yazar (Debug için çok önemli!)
@@ -193,8 +192,6 @@ public class TmdbService {
         }
     }
 
-    // TmdbService.java içine ekle
-
     public RestResponse<Page<MovieResponse>> discoverMoviesFromTmdb(UUID genreId, String lang, int tmdbPage, Pageable pageable) {
         try {
             // Tür eşleşmesi için TMDB ID'sini bulalım
@@ -233,9 +230,6 @@ public class TmdbService {
                     })
                     .toList();
 
-            // Spring Page nesnesi oluşturup dönüyoruz (Frontend Infinite Scroll bozulmasın diye)
-//            Page<MovieResponse> pageResult = new PageImpl<>(movies, PageRequest.of(tmdbPage - 1, 20), response.getTotalResults());
-
             Page<MovieResponse> pageResult = new PageImpl<>(
                     movies,
                     pageable, // Methoda Pageable pageable parametresini de ekleyip buraya paslayın
@@ -269,26 +263,6 @@ public class TmdbService {
             return List.of();
         }
     }
-
-
 }
-
-
-
-
-//importMOvie icinde
-/*
-TMDB'den ham veriyi çektik.
-
-Bizim veritabanımızdaki kategorilerle (Genre) bağ kurduk.
-
-Tarihi kesip sadece yılı aldık.
-
-İngilizce çeviriyi "ana açıklama" olarak ekledik.
-
-Her şeyi veritabanına kaydettik.
-
-Kaydettiğimiz bu tertemiz veriyi, kullanıcının formatına (DTO) çevirip geri yolladık.
-* */
 
 

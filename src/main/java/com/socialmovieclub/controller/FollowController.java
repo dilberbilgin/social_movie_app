@@ -50,6 +50,4 @@ public class FollowController {
             @org.springframework.data.web.PageableDefault(size = 20) Pageable pageable) {
         return success(followService.getFollowing(userId, pageable));
     }
-
-
 }

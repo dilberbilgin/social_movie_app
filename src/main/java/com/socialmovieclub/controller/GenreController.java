@@ -29,6 +29,4 @@ public class GenreController {
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
         return genreService.getAllGenres(lang);
     }
-
-
 }

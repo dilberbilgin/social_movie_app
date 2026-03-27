@@ -36,8 +36,6 @@ public class MovieService {
     private final MessageHelper messageHelper;
     private final GenreRepository genreRepository;
     private final RatingRepository ratingRepository;
-    private final UserRepository userRepository;
-
     private final MovieLikeRepository movieLikeRepository;
     private final CommentRepository commentRepository;
     private final SecurityService securityService;
@@ -127,34 +125,6 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return success(response);
     }
 
-//    public RestResponse<Page<MovieResponse>> getSuggestedMovies(String lang, Pageable pageable) {
-//        Optional<com.socialmovieclub.entity.User> currentUser = securityService.getUserIfLoggedIn();
-//
-//        // 1. GİRİŞ YAPMAMIŞ KULLANICI: Direkt Top Rated dön
-//        if (currentUser.isEmpty()) {
-//            return getAllMovies(lang, pageable);
-//        }
-//
-//        UUID userId = currentUser.get().getId();
-//
-//        // 2. GİRİŞ YAPMIŞ KULLANICI: Daha önce oylamadığı filmleri getir
-//        Page<Movie> suggestedMovies = movieRepository.findSuggestedMoviesForUser(userId, pageable);
-//
-//        // 3. EĞER YERELDE ÖNERİ BİTTİYSE (Veya azsa): TMDB'den "Trending" getir
-//        if (suggestedMovies.getContent().size() < pageable.getPageSize()) {
-//            // Burada tmdbService.getTrendingFromTmdb(lang, pageable) gibi bir çağrı yapılabilir
-//            // Şimdilik yerel sonuçları dönelim ama mantık bu yönde ilerlemeli
-//        }
-//
-//        Page<MovieResponse> responsePage = suggestedMovies.map(movie -> {
-//            MovieResponse dto = movieMapper.toResponse(movie, lang);
-//            enrichMovieWithLikes(dto);
-//            return dto;
-//        });
-//
-//        return success(responsePage);
-//    }
-
     public RestResponse<Page<MovieResponse>> getSuggestedMovies(String lang, Pageable pageable) {
         Optional<User> currentUser = securityService.getUserIfLoggedIn();
 
@@ -175,9 +145,6 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         if (suggestedList.size() < pageable.getPageSize()) {
             int needed = pageable.getPageSize() - suggestedList.size();
 
-
-
-
             // TMDB'den popüler filmleri getiriyoruz (Senin TmdbService'in üzerinden)
             // Not: Bu filmler henüz DB'de olmayabilir, sadece "Response" olarak döneceğiz.
             List<MovieResponse> tmdbMovies = tmdbService.getTrendingFromTmdb(lang, 1); // 1. sayfayı çek
@@ -191,18 +158,6 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
                     needed--;
                 }
             }
-//            // Zaten listede olan ID'leri topluyoruz ki mükerrer film olmasın
-//            List<UUID> existingIds = suggestedList.stream().map(Movie::getId).toList();
-
-            // Repository'den "bu ID'ler hariç en iyileri getir" sorgusu (Opsiyonel ama temiz olur)
-            // Şimdilik basitçe top-rated çekip filtreleyelim:
-//            List<Movie> topMovies = movieRepository.findTop10ByOrderByClubRatingDesc();
-//            for (Movie top : topMovies) {
-//                if (needed > 0 && !existingIds.contains(top.getId())) {
-//                    suggestedList.add(top);
-//                    needed--;
-//                }
-//            }
         }
 
         // 4. Enrich & Map
@@ -212,9 +167,6 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             return dto;
         }).toList();
 
-        // PageImpl ile yeni bir sayfa oluşturup dönüyoruz
-//        return success(new PageImpl<>(responseContent, pageable,
-//                suggestedPage.getTotalElements()));
         return success(new PageImpl<>(responseContent, pageable,
                 Math.max(suggestedPage.getTotalElements(), responseContent.size())));
     }

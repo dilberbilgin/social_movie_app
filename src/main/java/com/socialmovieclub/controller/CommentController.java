@@ -34,14 +34,12 @@ public class CommentController {
         return commentService.getMovieComments(movieId, pageable);
     }
 
-    // CommentController.java içine eklenecek
     @DeleteMapping("/{id}")
     public RestResponse<Void> deleteComment(@PathVariable UUID id) {
         return commentService.deleteComment(id);
     }
 
     // --- Etkileşim (Like/Dislike) Endpointleri ---
-
     @PostMapping("/{id}/like")
     public RestResponse<Void> likeComment(@PathVariable UUID id) {
         // Servis katmanı MessageHelper kullanarak "Yorum beğenildi" vs. mesajını dönecek
@@ -53,6 +51,4 @@ public class CommentController {
         // isLike = false göndererek dislike mantığını işletiyoruz
         return commentService.handleCommentReaction(id, false);
     }
-
-
 }
