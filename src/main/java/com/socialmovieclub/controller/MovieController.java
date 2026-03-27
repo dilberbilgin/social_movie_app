@@ -30,25 +30,6 @@ public class MovieController {
         return movieService.createMovie(request, lang);
     }
 
-//    @GetMapping
-//    public ResponseEntity<RestResponse<List<MovieResponse>>> getAllMovies(
-//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-//
-//        List<MovieResponse> response = movieService.getAllMovies(lang);
-//        return ResponseEntity.ok(RestResponse.success(response));
-//    }
-
-//    @GetMapping
-//    public RestResponse<List<MovieResponse>> getAllMovies(
-//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-//
-////        List<MovieResponse> data = movieService.getAllMovies(lang);
-////        return success(data);
-//
-//        // Service zaten RestResponse<List<MovieResponse>> dönüyor.
-//        return movieService.getAllMovies(lang);
-//    }
-
 @GetMapping
 public RestResponse<Page<MovieResponse>> getAllMovies(
         @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
@@ -69,12 +50,22 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
         return movieService.getTrendingMovies(lang);
     }
 
+//    @GetMapping("/{id}")
+//    public RestResponse<MovieResponse> getMovieDetail(
+//            @PathVariable UUID id, // Eğer ID tipin UUID ise
+//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+//
+//        return movieService.getMovieById(id, lang);
+//    }
+
     @GetMapping("/{id}")
     public RestResponse<MovieResponse> getMovieDetail(
-            @PathVariable UUID id, // Eğer ID tipin UUID ise
+            @PathVariable UUID id,
+            @RequestParam(required = false) Long tmdbId, // TMDB ID'yi de parametre olarak alabilmeliyiz
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
 
-        return movieService.getMovieById(id, lang);
+        // Eski metot (getMovieById) yerine yeni yazdığımız (getMovieDetail) metodunu çağırıyoruz
+        return movieService.getMovieDetail(id, tmdbId, lang);
     }
 
 //    @GetMapping("/search")
@@ -103,4 +94,13 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
             Pageable pageable) {
         return movieService.getDiscoverMovies(genreId, lang, pageable);
     }
+
+    @GetMapping("/suggestions")
+    public RestResponse<Page<MovieResponse>> getSuggestions(
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+            Pageable pageable) {
+        return movieService.getSuggestedMovies(lang, pageable);
+    }
+
+
 }

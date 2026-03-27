@@ -7,9 +7,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -42,6 +45,16 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
 
     // En çok oylanan (trend olan) ilk 10 filmi getir
     List<Movie> findTop10ByOrderByClubVoteCountDesc();
+
+    Optional<Movie> findByTmdbId(Long tmdbId);
+
+    // Kullanıcının etkileşime girmediklerini getir
+    @Query("SELECT m FROM Movie m WHERE m.id NOT IN " +
+            "(SELECT r.movie.id FROM Rating r WHERE r.user.id = :userId) " +
+            "AND m.id NOT IN " +
+            "(SELECT l.movie.id FROM MovieLike l WHERE l.user.id = :userId) " +
+            "ORDER BY m.clubRating DESC")
+    Page<Movie> findSuggestedMoviesForUser(@Param("userId") UUID userId, Pageable pageable);
 }
 
 

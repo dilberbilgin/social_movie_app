@@ -15,6 +15,9 @@ public class RatingRequest {
     @NotNull(message = "{movie.id.required}")
     private UUID movieId;
 
+    // TMDB'den gelen filmler için opsiyonel alan
+    private Long tmdbId;
+
     @NotNull(message = "{rating.score.required}")
     @Min(value = 1, message = "{rating.score.invalid}")
     @Max(value = 10, message = "{rating.score.invalid}")

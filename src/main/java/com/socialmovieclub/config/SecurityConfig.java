@@ -63,6 +63,7 @@ public class SecurityConfig {
                         // 2. İçerik Görüntüleme (GET istekleri genelde açık)
                         .requestMatchers(HttpMethod.GET, "/api/movies/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/movies/discover").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/movies/suggestions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/genres/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/movie/**").permitAll()
                         .requestMatchers("/api/tmdb/**").permitAll()

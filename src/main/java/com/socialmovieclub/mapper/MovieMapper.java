@@ -9,12 +9,15 @@ import com.socialmovieclub.entity.MovieTranslation;
 import org.mapstruct.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @Mapper(componentModel = "spring" , uses = {GenreMapper.class})
 public interface MovieMapper {
 
     // Request -> Entity
     Movie toEntity(MovieCreateRequest request);
+
+    Movie toEntity(MovieResponse dto);
 
     MovieTranslation toEntity(TranslationRequest request);
 
@@ -32,11 +35,15 @@ public interface MovieMapper {
     @Mapping(target = "genres", source = "genres")
     @Mapping(target = "posterUrl", source = "posterUrl", qualifiedByName = "posterUrlMapper")
     @Mapping(target = "tmdbRating", source = "tmdbRating") // Entity'deki tmdbRating'i eşle
-    @Mapping(target = "clubRating", source = "clubRating") // Entity'deki clubRating'i eşle
-    @Mapping(target = "clubVoteCount", source = "clubVoteCount")
+//    @Mapping(target = "clubRating", source = "clubRating") // Entity'deki clubRating'i eşle
+//    @Mapping(target = "clubVoteCount", source = "clubVoteCount")
+    @Mapping(target = "clubRating", source = "clubRating", defaultValue = "0.0")
+    @Mapping(target = "clubVoteCount", source = "clubVoteCount", defaultValue = "0")
     @Mapping(target = "imdbUrl", source = "imdbId", qualifiedByName = "imdbUrlGenerator")
     // Entity'deki genres -> Response'daki genres
     MovieResponse toResponse(Movie movie, @Context String languageCode);
+
+
 
     // ÇOKLU DÖNÜŞÜM: MapStruct otomatik olarak yukarıdaki metodu kullanır
     List<MovieResponse> toResponseList(List<Movie> movies, @Context String languageCode);
@@ -68,8 +75,9 @@ public interface MovieMapper {
 
 
     // TMDB DTO -> Response
-    @Mapping(target = "id", ignore = true) // DB'de olmadığı için UUID'si yok
-    @Mapping(target = "tmdbId", source = "dto.id") // TMDB'nin id'sini bizim tmdbId alanına eşle
+   // @Mapping(target = "id", ignore = true) // DB'de olmadığı için UUID'si yok
+    @Mapping(target = "tmdbId", source = "dto.id") // TMDB'nin id'sini bizim tmdbId alanına eşle// DTO'daki id'yi entity'deki tmdbId'ye sakla
+    @Mapping(target = "id", expression = "java(mapTmdbIdToUuid(dto.getId()))")
     @Mapping(target = "tmdbRating", source = "dto.voteAverage") // TMDB'den gelen puanı eşle
     @Mapping(target = "title", source = "dto.title")
     @Mapping(target = "description", source = "dto.overview")
@@ -78,10 +86,19 @@ public interface MovieMapper {
     @Mapping(target = "posterUrl", source = "dto.posterPath", qualifiedByName = "posterUrlMapper")
     @Mapping(target = "originalTitle", source = "dto.originalTitle")
     @Mapping(target = "genres", ignore = true)
-    @Mapping(target = "clubRating", ignore = true) // TMDB aramasında henüz bizim puanımız olamaz
-    @Mapping(target = "clubVoteCount", ignore = true)
+//    @Mapping(target = "clubRating", ignore = true) // TMDB aramasında henüz bizim puanımız olamaz
+//    @Mapping(target = "clubVoteCount", ignore = true)
+    @Mapping(target = "clubRating", constant = "0.0") // null yerine 0.0 döner
+    @Mapping(target = "clubVoteCount", constant = "0") // null yerine 0 döner
     @Mapping(target = "imdbUrl", source = "dto.imdbId", qualifiedByName = "imdbUrlGenerator")
     MovieResponse toResponseFromTmdb(TmdbMovieDto dto, String lang);
+
+    // TMDB Long ID'sini bizim sistem için tutarlı bir UUID'ye dönüştürür
+    default UUID mapTmdbIdToUuid(Long tmdbId) {
+        if (tmdbId == null) return null;
+        // Aynı TMDB ID her zaman aynı UUID'yi üretir
+        return UUID.nameUUIDFromBytes(tmdbId.toString().getBytes());
+    }
 
     @Named("imdbUrlGenerator")
     default String generateImdbUrl(String imdbId) {

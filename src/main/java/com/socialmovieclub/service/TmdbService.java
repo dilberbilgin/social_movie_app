@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -93,13 +92,14 @@ public class TmdbService {
     }
 
     @Transactional
-    public RestResponse<MovieResponse> importMovie(Long tmdbId, String currentLang) {
-        // 1. Kontrol: Bu film zaten var mı?
-        if (movieRepository.existsByTmdbId(tmdbId)) {
-            throw new BusinessException(messageHelper.getMessage("movie.already.exists"));
+    public Movie importMovieEntity(Long tmdbId, String currentLang) {
+        // 1. Kontrol: Bu film zaten var mı? (Çift kontrol)
+        Optional<Movie> existingMovie = movieRepository.findByTmdbId(tmdbId);
+        if (existingMovie.isPresent()) {
+            return existingMovie.get();
         }
 
-        // 2. Filmin ana bilgilerini al (Genel bilgiler için tek bir istek yeterli)
+        // 2. Filmin ana bilgilerini al
         String mainUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId)
                 .queryParam("api_key", apiKey)
                 .toUriString();
@@ -119,12 +119,14 @@ public class TmdbService {
         }
 
         // 4. Kategorileri eşleştir
-        List<Long> genreIds = mainData.getGenres().stream().map(TmdbGenreDto::getId).toList();
-        for (Long gId : genreIds) {
-            genreRepository.findByTmdbId(gId).ifPresent(movie.getGenres()::add);
+        if (mainData.getGenres() != null) {
+            List<Long> genreIds = mainData.getGenres().stream().map(TmdbGenreDto::getId).toList();
+            for (Long gId : genreIds) {
+                genreRepository.findByTmdbId(gId).ifPresent(movie.getGenres()::add);
+            }
         }
 
-        // 5. KRİTİK NOKTA: Desteklenen her dil için çevirileri topla
+        // 5. Desteklenen her dil için çevirileri topla
         for (String langCode : supportedLanguages) {
             try {
                 String langUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId)
@@ -143,74 +145,20 @@ public class TmdbService {
                     movie.getTranslations().add(translation);
                 }
             } catch (Exception e) {
-                // Bir dilde hata alınırsa diğerlerini durdurma, logla geç.
-                System.out.println(langCode + " dili için çeviri bulunamadı.");
+                System.err.println(langCode + " dili için çeviri hatası: " + e.getMessage());
             }
         }
 
-        // 6. Kaydet ve kullanıcının o anki diline göre response dön
-        Movie savedMovie = movieRepository.save(movie);
-        return success(movieMapper.toResponse(savedMovie, currentLang), messageHelper.getMessage("movie.import.success"));
+        // 6. Kaydet ve Entity dön
+        return movieRepository.save(movie);
     }
 
-//    public RestResponse<MovieResponse> importMovie(Long tmdbId, String lang) {
-//        //1. Daha once kaydedilmis mi?
-//        if (movieRepository.existsByTmdbId(tmdbId)) {
-//            throw new BusinessException(messageHelper.getMessage("movie.already.exists"));
-//        }
-//
-//        // 2. TMDB'den detaylari cek
-//        // language=en yerine language=%s ekledik
-////        String url = String.format("%s/movie/%d?api_key=%s&language=%s", baseUrl, tmdbId, apiKey, lang);
-//        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId)
-//                .queryParam("api_key", apiKey)
-//                .queryParam("language", lang)
-//                .toUriString();
-//        TmdbMovieDto tmdbMovie = restTemplate.getForObject(url, TmdbMovieDto.class);
-//
-//        if (tmdbMovie == null) {
-//            throw new BusinessException(messageHelper.getMessage("tmdb.movie.not.found"));
-//        }
-//
-//        // 3. DOnusturme
-//        Movie movie = new Movie();
-//        movie.setImdbId(tmdbMovie.getImdbId()); // Entity'deki imdbId alanına set ediyoruz
-//        movie.setOriginalTitle(tmdbMovie.getOriginalTitle());
-//        movie.setTmdbId(tmdbMovie.getId());
-//        movie.setTmdbRating(tmdbMovie.getVoteAverage());
-//
-//        if (tmdbMovie.getReleaseDate() != null && tmdbMovie.getReleaseDate().length() >= 4) {
-//            movie.setReleaseYear(Integer.parseInt(tmdbMovie.getReleaseDate().substring(0, 4)));
-//        }
-//
-//        //postPath'i tam URL'e cevir
-//        movie.setPosterUrl(tmdbMovie.getPosterPath());
-//
-//        //4. Kategorileri Eslestir
-//        // genre_ids veya genres listesinden ID'leri topla
-//
-//        List<Long> genreIds = tmdbMovie.getGenreIds() != null ?
-//                tmdbMovie.getGenreIds() :
-//                tmdbMovie.getGenres().stream().map(TmdbGenreDto::getId).toList();
-//
-//        for (Long tempGenreId : genreIds) {
-//            // movie.getGenres() Set olduğu için direkt içine ekleyebiliriz
-//            genreRepository.findByTmdbId(tempGenreId).ifPresent(movie.getGenres()::add);
-//        }
-//
-//        // 5. Çeviriyi ekle (Burada 'en' yerine 'lang' kullanıyoruz!)
-//        MovieTranslation translation = new MovieTranslation();
-//        translation.setLanguageCode(lang); // Kullanıcı hangi dilde import ediyorsa o kod
-//        translation.setTitle(tmdbMovie.getTitle());
-//        translation.setDescription(tmdbMovie.getOverview());
-//        translation.setMovie(movie);
-//
-//        movie.getTranslations().add(translation);
-//
-//        // 6. kaydet ve response don
-//        Movie savedMovie = movieRepository.save(movie);
-//        return  success(movieMapper.toResponse(savedMovie, lang), messageHelper.getMessage("movie.import.success"));
-//    }
+    @Transactional
+    public RestResponse<MovieResponse> importMovie(Long tmdbId, String currentLang) {
+        Movie savedMovie = importMovieEntity(tmdbId, currentLang);
+        return RestResponse.success(movieMapper.toResponse(savedMovie, currentLang),
+                messageHelper.getMessage("movie.import.success"));
+    }
 
     public RestResponse<List<MovieResponse>> searchMovies(String query, String lang) {
         try {
@@ -243,11 +191,6 @@ public class TmdbService {
             e.printStackTrace();
             throw new BusinessException(messageHelper.getMessage("tmdb.search.error"));
         }
-
-//    } catch (Exception e) {
-//        log.error("TMDB search error for query: {}", query, e); // log kullanıyorsan
-//        throw new BusinessException(messageHelper.getMessage("tmdb.search.error"));
-//    }
     }
 
     // TmdbService.java içine ekle
@@ -304,6 +247,30 @@ public class TmdbService {
             return success(Page.empty());
         }
     }
+
+    public List<MovieResponse> getTrendingFromTmdb(String lang, int page) {
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/trending/movie/day")
+                    .queryParam("api_key", apiKey)
+                    .queryParam("language", lang)
+                    .queryParam("page", page)
+                    .toUriString();
+
+            TmdbSearchResponse response = restTemplate.getForObject(url, TmdbSearchResponse.class);
+
+            if (response == null || response.getResults() == null) {
+                return List.of();
+            }
+
+            return response.getResults().stream()
+                    .map(dto -> movieMapper.toResponseFromTmdb(dto, lang))
+                    .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+
 }
 
 

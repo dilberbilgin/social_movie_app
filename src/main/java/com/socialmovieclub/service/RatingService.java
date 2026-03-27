@@ -9,6 +9,7 @@ import com.socialmovieclub.entity.Rating;
 import com.socialmovieclub.entity.User;
 import com.socialmovieclub.enums.ActivityType;
 import com.socialmovieclub.exception.BusinessException;
+import com.socialmovieclub.mapper.MovieMapper;
 import com.socialmovieclub.mapper.RatingMapper;
 import com.socialmovieclub.repository.MovieRepository;
 import com.socialmovieclub.repository.RatingRepository;
@@ -36,16 +37,68 @@ public class RatingService {
     private final MessageHelper messageHelper;
     private final SecurityService securityService;
     private final ActivityService activityService;
+    private final MovieService movieService;
+
+//    @Transactional
+//    public RestResponse<RatingResponse> rateMovie(RatingRequest request) {
+//        // 1. GÜVENLİK: İstemi yapan kullanıcıyı bul
+//        User user = securityService.getCurrentUser();
+//        // 2. DOĞRULAMA: Film var mı?
+//        Movie movie = movieRepository.findById(request.getMovieId())
+//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+//
+//        // 3. UPSERT: Mevcut puanı güncelle veya yeni oluştur
+//        Optional<Rating> existingRating = ratingRepository.findByUserIdAndMovieId(user.getId(), movie.getId());
+//        boolean isNew = existingRating.isEmpty();
+//        Rating rating = existingRating.orElse(new Rating());
+//
+//        rating.setScore(request.getScore());
+//        rating.setUser(user);
+//        rating.setMovie(movie);
+//
+//        ratingRepository.save(rating);
+//
+//        // 4. İSTATİSTİK GÜNCELLEME: Filmin genel ortalamasını tazele
+//        updateMovieRatingStats(movie);
+//
+//        // Puanlama yapıldığında activity tablosuna kayıt atıyoruz
+//        activityService.createActivity(
+//                user.getId(),
+//                ActivityType.MOVIE_RATE,
+//                movie.getId(),
+//                request.getScore() + "/10",
+//                movie.getPosterUrl(),
+//                movie.getOriginalTitle()
+//        );
+//
+//        // 5. RESPONSE HAZIRLAMA
+//        RatingResponse response = ratingMapper.toResponse(rating);
+//
+//        // Aktif dili alıp başlığı setliyoruz
+//        String currentLang = LocaleContextHolder.getLocale().getLanguage();
+//
+//        response.setNewClubRating(movie.getClubRating());
+//        response.setNewClubVoteCount(movie.getClubVoteCount());
+//        response.setMovieTitle(getMovieTitleByLang(movie, currentLang));
+//
+//        String msgKey = isNew ? "rating.success" : "movie.rating.updated";
+//        return RestResponse.success(response, messageHelper.getMessage(msgKey));
+//    }
 
     @Transactional
-    public RestResponse<RatingResponse> rateMovie(RatingRequest request) {
-        // 1. GÜVENLİK: İstemi yapan kullanıcıyı bul
+    public RestResponse<RatingResponse> rateMovie(RatingRequest request, String lang) {
         User user = securityService.getCurrentUser();
-        // 2. DOĞRULAMA: Film var mı?
-        Movie movie = movieRepository.findById(request.getMovieId())
-                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
 
-        // 3. UPSERT: Mevcut puanı güncelle veya yeni oluştur
+        Movie movie;
+        if (request.getTmdbId() != null) {
+            // Eğer TMDB ID varsa, filmin varlığını garanti et (yoksa kaydet)
+            movie = movieService.ensureMovieExists(request.getTmdbId(), lang);
+        } else {
+            // Sadece bizim DB'deki UUID ile ara
+            movie = movieRepository.findById(request.getMovieId())
+                    .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+        }
+
         Optional<Rating> existingRating = ratingRepository.findByUserIdAndMovieId(user.getId(), movie.getId());
         boolean isNew = existingRating.isEmpty();
         Rating rating = existingRating.orElse(new Rating());
@@ -56,10 +109,10 @@ public class RatingService {
 
         ratingRepository.save(rating);
 
-        // 4. İSTATİSTİK GÜNCELLEME: Filmin genel ortalamasını tazele
+        // İstatistikleri güncelle
         updateMovieRatingStats(movie);
 
-        // Puanlama yapıldığında activity tablosuna kayıt atıyoruz
+        // Aktivite kaydı
         activityService.createActivity(
                 user.getId(),
                 ActivityType.MOVIE_RATE,
@@ -69,15 +122,10 @@ public class RatingService {
                 movie.getOriginalTitle()
         );
 
-        // 5. RESPONSE HAZIRLAMA
         RatingResponse response = ratingMapper.toResponse(rating);
-
-        // Aktif dili alıp başlığı setliyoruz
-        String currentLang = LocaleContextHolder.getLocale().getLanguage();
-
         response.setNewClubRating(movie.getClubRating());
         response.setNewClubVoteCount(movie.getClubVoteCount());
-        response.setMovieTitle(getMovieTitleByLang(movie, currentLang));
+        response.setMovieTitle(getMovieTitleByLang(movie, lang));
 
         String msgKey = isNew ? "rating.success" : "movie.rating.updated";
         return RestResponse.success(response, messageHelper.getMessage(msgKey));

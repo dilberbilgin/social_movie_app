@@ -13,7 +13,6 @@ import com.socialmovieclub.repository.MovieRepository;
 import com.socialmovieclub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +28,25 @@ public class MovieLikeService {
     private final MessageHelper messageHelper;
     private final ActivityService activityService;
     private final SecurityService securityService;
+    private final MovieService movieService;
+
 
     @Transactional
     @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true) // Cache'i temizler, sayı güncellenir
-    public RestResponse<Void> handleMovieReaction(UUID movieId, boolean isLike) {
+    public RestResponse<UUID> handleMovieReaction(UUID movieId, Long tmdbId, boolean isLike, String lang) {
         User user = securityService.getCurrentUser();
-        Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+        Movie movie;
+        if (tmdbId != null) {
+            // Otomatik import veya mevcut olanı getir
+            movie = movieService.ensureMovieExists(tmdbId, lang);
+        } else {
+            // Sadece yerel DB'de ara
+            movie = movieRepository.findById(movieId)
+                    .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+        }
+//        Movie movie = movieRepository.findById(movieId)
+//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+        UUID finalMovieId = movie.getId();
 
         Optional<MovieLike> existing = movieLikeRepository.findByUserIdAndMovieId(user.getId(), movie.getId());
         String messageKey;
@@ -71,12 +82,6 @@ public class MovieLikeService {
             }
         }
 
-        return RestResponse.success(null, messageHelper.getMessage(messageKey));
+        return RestResponse.success(finalMovieId, messageHelper.getMessage(messageKey));
     }
-
-//    private User getCurrentUser() {
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-//        return userRepository.findByUsername(username)
-//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-//    }
 }

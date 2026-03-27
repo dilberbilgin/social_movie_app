@@ -20,9 +20,16 @@ public class RatingController {
 
     private final RatingService ratingService;
 
+//    @PostMapping
+//    public RestResponse<RatingResponse> addOrUpdateRating(@Valid @RequestBody RatingRequest request) {
+//        return ratingService.rateMovie(request);
+//    }
+
     @PostMapping
-    public RestResponse<RatingResponse> addOrUpdateRating(@Valid @RequestBody RatingRequest request) {
-        return ratingService.rateMovie(request);
+    public RestResponse<RatingResponse> addOrUpdateRating(
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+            @Valid @RequestBody RatingRequest request) {
+        return ratingService.rateMovie(request, lang);
     }
 
     // Giriş yapmış kullanıcının kendi puanlarını görmesi
@@ -36,4 +43,6 @@ public class RatingController {
     public RestResponse<Void> deleteRating(@PathVariable UUID movieId) {
         return ratingService.deleteRating(movieId);
     }
+
+
 }
