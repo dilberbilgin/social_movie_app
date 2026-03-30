@@ -144,4 +144,8 @@ public class NotificationService {
         }
         return res;
     }
+
+    public void markAllAsRead(User currentUser) {
+        notificationRepository.markAllAsReadForUser(currentUser);
+    }
 }

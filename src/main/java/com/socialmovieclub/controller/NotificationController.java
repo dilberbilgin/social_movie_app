@@ -37,4 +37,11 @@ public class NotificationController {
 
         return RestResponse.success(null);
     }
+
+    @PatchMapping("/read-all")
+    public RestResponse<Void> markAllAsRead() {
+        User currentUser = securityService.getCurrentUser();
+        notificationService.markAllAsRead(currentUser);
+        return RestResponse.success(null);
+    }
 }
