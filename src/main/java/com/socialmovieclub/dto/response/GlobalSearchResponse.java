@@ -1,0 +1,15 @@
+package com.socialmovieclub.dto.response;
+
+import lombok.Builder;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+@Builder
+public class GlobalSearchResponse {
+    // Sonuçları kategorize edilmiş şekilde döner (Instagram'daki sekmeler gibi)
+    private List<SearchResultDto> movies;
+    private List<SearchResultDto> users;
+    private List<SearchResultDto> topResults; // En alakalı karışık sonuçlar
+}

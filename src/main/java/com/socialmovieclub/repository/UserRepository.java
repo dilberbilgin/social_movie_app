@@ -23,6 +23,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     //Kullanici adina gore arama(Case-insensitive)
     Page<User> findByUsernameContainingIgnoreCase(String username, Pageable pageable);
 
+    //SOLID ve performans açısından Sayfalamaya (Page) ihtiyacımız olmayan, sadece hızlıca ilk birkaç sonucu getiren bir yapı
+    List<User> findByUsernameContainingIgnoreCase(String username);
 
     // Veritabanında e-postaya göre arama yapmak için
     Optional<User> findByEmail(String email);
@@ -42,5 +44,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT f.following.id FROM Follow f WHERE f.follower.id = :currentUserId AND f.following.id IN :targetIds")
     List<UUID> findFollowedIdsFromList(@Param("currentUserId") UUID currentUserId, @Param("targetIds") List<UUID> targetIds);
+
 
     }

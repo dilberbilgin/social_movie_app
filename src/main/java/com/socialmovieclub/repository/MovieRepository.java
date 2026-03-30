@@ -43,6 +43,9 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
             "(SELECT l.movie.id FROM MovieLike l WHERE l.user.id = :userId) " +
             "ORDER BY m.clubRating DESC")
     Page<Movie> findSuggestedMoviesForUser(@Param("userId") UUID userId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"genres", "translations"})
+    List<Movie> findByOriginalTitleContainingIgnoreCase(String title);
 }
 
 

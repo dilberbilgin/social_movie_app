@@ -6,7 +6,6 @@ import com.socialmovieclub.dto.request.MovieCreateRequest;
 import com.socialmovieclub.dto.response.MovieResponse;
 import com.socialmovieclub.entity.Genre;
 import com.socialmovieclub.entity.Movie;
-import com.socialmovieclub.entity.Rating;
 import com.socialmovieclub.entity.User;
 import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.mapper.MovieMapper;
@@ -17,7 +16,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import static com.socialmovieclub.core.result.RestResponse.success;
@@ -42,6 +40,7 @@ public class MovieService {
     private final TmdbService tmdbService;
 
     @Transactional
+    //Admin veya sistem tarafından manuel film eklemek için
     public RestResponse<MovieResponse> createMovie(MovieCreateRequest request, String lang) {
 
         // 1. İş Kuralı Kontrolü (Dinamik ve Çok Dilli)
@@ -145,7 +144,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         if (suggestedList.size() < pageable.getPageSize()) {
             int needed = pageable.getPageSize() - suggestedList.size();
 
-            // TMDB'den popüler filmleri getiriyoruz (Senin TmdbService'in üzerinden)
+            // TMDB'den popüler filmleri getiriyoruz (TmdbService'in üzerinden)
             // Not: Bu filmler henüz DB'de olmayabilir, sadece "Response" olarak döneceğiz.
             List<MovieResponse> tmdbMovies = tmdbService.getTrendingFromTmdb(lang, 1); // 1. sayfayı çek
 
@@ -177,11 +176,24 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
     public RestResponse<MovieResponse> getMovieDetail(UUID id, Long tmdbId, String lang) {
         Movie movie;
 
+        // Önce TMDB ID kontrolü (Çünkü aramadan gelen filmlerde UUID henüz oluşmadı)
         if (tmdbId != null) {
             movie = ensureMovieExists(tmdbId, lang);
-        } else {
+
+            /*// Eğer kullanıcı giriş yapmamışsa veritabanına KAYDETME, sadece TMDB'den getirip göster
+    if (securityService.getUserIfLoggedIn().isEmpty()) {
+        return success(tmdbService.fetchOnlyFromTmdb(tmdbId, lang)); // Sadece görüntüle, kaydetme
+    }
+    movie = ensureMovieExists(tmdbId, lang);*/
+        }
+        // UUID null değilse yerelde ara
+        else if (id != null) {
             movie = movieRepository.findById(id)
                     .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
+        }
+        // İkisi de yoksa hata dön
+        else {
+            throw new BusinessException(messageHelper.getMessage("movie.id.required"));
         }
 
         MovieResponse response = movieMapper.toResponse(movie, lang);
@@ -218,7 +230,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         dtos.forEach(this::enrichMovieWithLikes);
     }
 
-    // Arama kısmını da sayfalayalım (Asıl Infinite Scroll burada lazım olacak)
+    // Arama kısmını da sayfalayalım
     public RestResponse<Page<MovieResponse>> searchMovies(String title, UUID genreId, String lang, Pageable pageable) {
         Specification<Movie> spec = Specification.where(null);
 
@@ -259,13 +271,13 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             // Eğer yerel sayfa 1 ise ve biz 1. sayfayı (2. sayfa) istiyorsak, TMDB'den 1. sayfasını isteriz.
             int tmdbPageToRequest = pageable.getPageNumber() - (totalLocalElements == 0 ? 0 : localPages) + 1;
 
-            // ÖNEMLİ: TmdbService'e pageable nesnesini de gönderin ki totalResults düzgün dönsün
+            // TmdbService'e pageable nesnesini de gönderelim ki totalResults düzgün dönsün
             return tmdbService.discoverMoviesFromTmdb(genreId, lang, tmdbPageToRequest, pageable);
         }
 
         Page<Movie> localMovies = movieRepository.findAll(spec, pageable);
 
-        // KRİTİK NOKTA: Eğer yerel sayfa SON sayfaysa bile 'last' değerini false yapmalıyız
+        // Eğer yerel sayfa SON sayfaysa bile 'last' değerini false yapmalıyız
         // çünkü arkasından TMDB verileri gelecek.
         Page<MovieResponse> mappedPage = localMovies.map(m -> {
             MovieResponse res = movieMapper.toResponse(m, lang);
