@@ -1,6 +1,7 @@
 package com.socialmovieclub.service;
 
 import com.socialmovieclub.core.utils.MessageHelper;
+import com.socialmovieclub.core.utils.StringUtil;
 import com.socialmovieclub.dto.response.NotificationResponse;
 import com.socialmovieclub.entity.Notification;
 import com.socialmovieclub.entity.User; // EKSİK OLAN BUYDU
@@ -134,7 +135,11 @@ public class NotificationService {
         NotificationResponse res = notificationMapper.toResponse(n);
         NotificationStrategy strategy = strategyMap.get(n.getType());
         if (strategy != null) {
-            res.setMessage(strategy.buildMessage(n.getActor().getUsername(), n.getContent(), n.getRecipient().getPreferredLanguage()));
+            // Stratejiden mesajı alıyoruz
+            String rawMessage = strategy.buildMessage(n.getActor().getUsername(), n.getContent(), n.getRecipient().getPreferredLanguage());
+            // Güvenlik katmanı: Mesaj 100 karakterden uzunsa kes
+            res.setMessage(StringUtil.truncate(rawMessage, 100));
+            //res.setMessage(strategy.buildMessage(n.getActor().getUsername(), n.getContent(), n.getRecipient().getPreferredLanguage()));
         }
         return res;
     }

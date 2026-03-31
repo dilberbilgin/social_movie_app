@@ -17,6 +17,7 @@ public class SearchResultDto {
     private String subTitle;    // "2024 • Action" veya "Software Developer"
     private String imageUrl;    // Poster URL veya Profile Image URL
     private String type;        // "MOVIE", "USER", "GROUP", "HASHTAG"
+    private String description;
 
     // Frontend'de tıklandığında detaylara gitmek için ek bilgi
     private Map<String, Object> metadata;

@@ -3,6 +3,7 @@ package com.socialmovieclub.service;
 import com.socialmovieclub.core.constant.CacheConstants;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
+import com.socialmovieclub.core.utils.StringUtil;
 import com.socialmovieclub.dto.request.CommentRequest;
 import com.socialmovieclub.dto.response.CommentResponse;
 import com.socialmovieclub.entity.Comment;
@@ -64,9 +65,10 @@ public class CommentService {
 
             // Kendi yorumuna yanıt veriyorsa bildirim gitmesin
             if (!parentComment.getUser().getId().equals(user.getId())) {
-                String previewContent = parentComment.getContent().length() > 25
-                        ? parentComment.getContent().substring(0, 22) + "..."
-                        : parentComment.getContent();
+//                String previewContent = parentComment.getContent().length() > 25
+//                        ? parentComment.getContent().substring(0, 22) + "..."
+//                        : parentComment.getContent();
+                String previewContent = StringUtil.truncate(parentComment.getContent(), 25);
 
                 notificationService.createNotification(
                         parentComment.getUser(),
@@ -81,9 +83,11 @@ public class CommentService {
 
         // AKTİVİTE KAYDI: Kullanıcı yorum yaptı
         // İçerik olarak yorumun ilk 50 karakterini saklıyoruz (Feed'de önizleme için)
-        String preview = comment.getContent().length() > 50
-                ? comment.getContent().substring(0, 47) + "..."
-                : comment.getContent();
+        // Utils sinifina StringUtil sinifi olusturarak uzun uzun yazmayip kodu Iyilestirdik. DRY
+//        String preview = comment.getContent().length() > 50
+//                ? comment.getContent().substring(0, 47) + "..."
+//                : comment.getContent();
+        String preview = StringUtil.truncate(comment.getContent(), 50);
         activityService.createActivity(user.getId(), ActivityType.COMMENT_CREATE, movie.getId(), preview, movie.getPosterUrl(), movie.getOriginalTitle());
 
         String successMsg = messageHelper.getMessage("comment.create.success");
@@ -133,6 +137,8 @@ public class CommentService {
 
             // --- BİLDİRİM VE AKTİVİTE: İlk kez beğenildiğinde ---
             if (isLike) {
+                // Bildirim ve Aktivite için metin kısaltma
+                String truncatedContent = StringUtil.truncate(comment.getContent(), 30);
                 // Bildirim Gönder (Yorum sahibine)
                 notificationService.createNotification(
                         comment.getUser(),
@@ -141,11 +147,12 @@ public class CommentService {
                         comment.getMovie().getId(), // targetId (Film)
                         comment.getId(), // subTargetId (Beğenilen yorumun ID'si)
                        // comment.getContent()
-                        comment.getContent().length() > 30 ? comment.getContent().substring(0, 27) + "..." : comment.getContent()
+                        //comment.getContent().length() > 30 ? comment.getContent().substring(0, 27) + "..." : comment.getContent()
+                        truncatedContent
                 );
                 // Aktivite Oluştur (Takipçilere)
-                String commentPreview = comment.getContent().length() > 30 ? comment.getContent().substring(0, 27) + "..." : comment.getContent();
-                activityService.createActivity(currentUser.getId(), ActivityType.COMMENT_LIKE, comment.getMovie().getId(), commentPreview, comment.getMovie().getPosterUrl(), comment.getMovie().getOriginalTitle());
+                //String commentPreview = comment.getContent().length() > 30 ? comment.getContent().substring(0, 27) + "..." : comment.getContent();
+                activityService.createActivity(currentUser.getId(), ActivityType.COMMENT_LIKE, comment.getMovie().getId(), truncatedContent, comment.getMovie().getPosterUrl(), comment.getMovie().getOriginalTitle());
             }
         }
 
