@@ -25,7 +25,6 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
     // Takip kontrolü
     boolean existsByFollowerIdAndFollowingId(UUID followerId, UUID followingId);
 
-    // FollowRepository.java içine ekleyelim
 // Bu sorgu veritabanı seviyesinde kontrol sağlar
     boolean existsByFollowerAndFollowing(User follower, User following);
 
@@ -40,7 +39,4 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
 
     @Query("SELECT f.following.id FROM Follow f WHERE f.follower.id = :currentUserId AND f.following.id IN :targetIds")
     List<UUID> findFollowedIds(@Param("currentUserId") UUID currentUserId, @Param("targetIds") List<UUID> targetIds);
-
-
-
 }

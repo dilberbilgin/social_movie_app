@@ -35,7 +35,7 @@ public class FeedService {
 
     @Transactional(readOnly = true)
     @Cacheable(value = CacheConstants.FEED_CACHE,
-            key = "#currentUserId + '-' + #pageable.pageNumber", // Artık hata vermez
+            key = "#currentUserId + '-' + #pageable.pageNumber",
             unless = "#result.success == false")
 
     public RestResponse<CustomPageResponse<ActivityResponse>> getFollowedFeed(UUID currentUserId, Pageable pageable) {
@@ -65,10 +65,10 @@ public class FeedService {
             ActivityResponse res = mapToResponse(activity, movie);
 
             if (movie != null) {
-                // 1. Toplam Beğeni Sayısı (MovieLikeRepository kullanarak)
+                // 1. Toplam Beğeni Sayısı
                 res.setLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(movie.getId()));
 
-                // 2. Toplam Yorum Sayısı (CommentRepository kullanarak)
+                // 2. Toplam Yorum Sayısı
                 res.setCommentCount(commentRepository.countByMovieIdAndDeletedFalse(movie.getId()));
 
                 // 3. Giriş yapan kullanıcı bu filmi beğendi mi? (Kırmızı kalp için)

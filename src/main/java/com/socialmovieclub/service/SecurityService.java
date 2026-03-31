@@ -29,7 +29,7 @@ public class SecurityService {
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
     }
 
-    // Seçenekli kullanıcı: Giriş yapmışsa User döner, yapmamışsa boş Optional döner (Örn: yorum listelerken)
+    // Giriş yapmışsa User döner, yapmamışsa boş Optional döner (Örn: yorum listelerken)
     public Optional<User> getUserIfLoggedIn() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
 

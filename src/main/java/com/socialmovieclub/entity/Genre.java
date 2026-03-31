@@ -20,7 +20,7 @@ public class Genre extends BaseEntity{
     @Column(name = "name", unique = true, nullable = false)
     private String name;
 
-    // İlişki: Bir kategorinin birden fazla dilde (TR, EN) karşılığı olabilir.
+    // Bir kategorinin birden fazla dilde (TR, EN) karşılığı olabilir.
     @OneToMany(mappedBy = "genre", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<GenreTranslation> translations = new HashSet<>();
 

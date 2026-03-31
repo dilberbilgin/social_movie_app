@@ -12,7 +12,7 @@ public class RatingResponse {
     private String username;
     private UUID movieId;
 
-    // profil sayfasında film kartını direkt basalım
+    // profil sayfasında film kartını direkt bas
     private String movieTitle;
     private String posterUrl;
     private Integer releaseYear;

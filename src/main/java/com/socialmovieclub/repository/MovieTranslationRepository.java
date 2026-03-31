@@ -9,13 +9,6 @@ import java.util.UUID;
 import java.util.function.ToDoubleBiFunction;
 
 @Repository
-//public interface MovieTranslationRepository extends JpaRepository<MovieTranslation, Long> {
-//
-//    // SOLID: Sadece dile göre filtreleme sorumluluğu burada olmalı
-//    Optional<MovieTranslation> findByMovieIdAndLanguageCode(Long movieId, String languageCode);
-//}
-
-
 public interface MovieTranslationRepository extends JpaRepository<MovieTranslation, UUID> {
 
     // Artık movieId bir UUID olduğu için, Spring Data JPA bunu otomatik eşleştirecektir.

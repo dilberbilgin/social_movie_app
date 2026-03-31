@@ -141,7 +141,7 @@ public class RatingService {
         // 2. Puanı sil
         ratingRepository.deleteByUserIdAndMovieId(user.getId(), movieId);
 
-        // 3. MATEMATİKSEL TETİKLEME: Puan silindiği için filmin ortalamasını yeniden hesapla
+        // 3. Puan silindiği için filmin ortalamasını yeniden hesapla
         updateMovieRatingStats(movie);
 
         return RestResponse.success(null, messageHelper.getMessage("rating.deleted.success"));

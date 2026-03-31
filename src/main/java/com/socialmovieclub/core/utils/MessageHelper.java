@@ -18,9 +18,7 @@ public class MessageHelper {
      * @param key messages_tr.properties içindeki anahtar
      * @param args mesajın içine gömülecek dinamik veriler (film adı vb.)
      */
-//    public String getMessage(String key, Object... args) {
-//        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
-//    }
+
     // 1. Mevcut istekteki dili (Browser dili) kullanan metot
     public String getMessage(String key, Object... args) {
         return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());

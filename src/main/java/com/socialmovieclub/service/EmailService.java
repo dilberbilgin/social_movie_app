@@ -44,7 +44,6 @@ public class EmailService {
 
             mailSender.send(mimeMessage);
         } catch (MessagingException e) {
-            // Loglama yapabilirsin
         }
     }
 }

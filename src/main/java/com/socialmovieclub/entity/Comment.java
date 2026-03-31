@@ -40,7 +40,7 @@ public class Comment extends BaseEntity {
     public void softDelete(String deletedMessage) {
         this.deleted = true;
         this.content = deletedMessage;
-        // Cevapları silmiyoruz (Instagram mantığı),
+        // Cevapları silmiyoruz
         // sadece ana yorumun içeriğini "Silindi" yapıyoruz.
     }
 }

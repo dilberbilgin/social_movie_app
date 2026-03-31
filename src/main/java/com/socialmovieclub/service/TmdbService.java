@@ -49,7 +49,6 @@ public class TmdbService {
     @Transactional
     public RestResponse<Void> syncGenres(String lang) {
         try {
-//            String url = String.format("%s/genre/movie/list?api_key=%s&language=en", baseUrl, apiKey);
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/genre/movie/list")
                     .queryParam("api_key", apiKey)
                     .queryParam("language", "en") // Tür isimlerini standart İngilizce çekiyoruz
@@ -161,9 +160,6 @@ public class TmdbService {
 
     public RestResponse<List<MovieResponse>> searchMovies(String query, String lang) {
         try {
-            // 1. URL Oluştur (Arama için)
-//            String url = String.format("%s/search/movie?api_key=%s&query=%s&language=%s",
-//                    baseUrl, apiKey, query, lang);
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/search/movie")
                     .queryParam("api_key", apiKey)
                     .queryParam("query", query)
@@ -179,7 +175,7 @@ public class TmdbService {
             }
 
             // 3. TMDB DTO listesini MovieResponse listesine çevir
-            // Stream kullanarak her bir TmdbMovieDto'yu MovieResponse'a çeviriyoruz
+            // Stream kullanarak her bir TmdbMovieDto'yu MovieResponse'a çeviriyoruz .//todo: stream
             List<MovieResponse> searchResults = response.getResults().stream()
                     .map(dto -> movieMapper.toResponseFromTmdb(dto, lang))
                     .toList();
@@ -264,5 +260,7 @@ public class TmdbService {
         }
     }
 }
+
+//todo: tekrar incele
 
 

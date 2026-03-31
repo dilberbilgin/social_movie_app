@@ -156,7 +156,7 @@ public class CommentService {
     public RestResponse<Void> deleteComment(UUID commentId) {
 //        User currentUser = getCurrentUser();
         User currentUser = securityService.getCurrentUser();
-        Comment comment = getCommentOrThrow(commentId); // Yeni helper kullanıldı
+        Comment comment = getCommentOrThrow(commentId);
 
         // Güvenlik: Nesne odaklı kontrol
         if (!comment.getUser().getId().equals(currentUser.getId())) {

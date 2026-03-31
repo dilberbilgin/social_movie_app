@@ -39,6 +39,7 @@ public class FollowService {
 
         User following = userRepository.findById(followingId)
                 .orElseThrow(() -> new BusinessException("Target user not found"));
+        //todo : buradaki mesajlari solide uygun duzenle
 
         // 1. Kendi kendini takip edemezsin
         if (follower.getId().equals(following.getId())) {

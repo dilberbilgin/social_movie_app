@@ -145,7 +145,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             int needed = pageable.getPageSize() - suggestedList.size();
 
             // TMDB'den popüler filmleri getiriyoruz (TmdbService'in üzerinden)
-            // Not: Bu filmler henüz DB'de olmayabilir, sadece "Response" olarak döneceğiz.
+            // Bu filmler henüz DB'de olmayabilir, sadece "Response" olarak döneceğiz.
             List<MovieResponse> tmdbMovies = tmdbService.getTrendingFromTmdb(lang, 1); // 1. sayfayı çek
 
             for (MovieResponse tmdbMovie : tmdbMovies) {
@@ -170,7 +170,6 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
                 Math.max(suggestedPage.getTotalElements(), responseContent.size())));
     }
 
-
     // Sadece UUID değil, opsiyonel olarak tmdbId de alabiliriz
 // veya UUID üzerinden bulunamadığında TMDB kontrolü yapabiliriz.
     public RestResponse<MovieResponse> getMovieDetail(UUID id, Long tmdbId, String lang) {
@@ -186,7 +185,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
     }
     movie = ensureMovieExists(tmdbId, lang);*/
         }
-        // UUID null değilse yerelde ara
+        // UUID null değilse localde ara
         else if (id != null) {
             movie = movieRepository.findById(id)
                     .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
@@ -230,13 +229,12 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         dtos.forEach(this::enrichMovieWithLikes);
     }
 
-    // Arama kısmını da sayfalayalım
     public RestResponse<Page<MovieResponse>> searchMovies(String title, UUID genreId, String lang, Pageable pageable) {
         Specification<Movie> spec = Specification.where(null);
 
         if (title != null && !title.isEmpty()) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("originalTitle")), "%" + title.toLowerCase() + "%"));
+                    cb.like(cb.lower(root.get("originalTitle")), "%" + title.toLowerCase() + "%")); //todo : incele
         }
 
         if (genreId != null) {
@@ -296,15 +294,14 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
                 .orElseGet(() -> {
                     // 2. Yoksa, bu UUID aslında bir TMDB ID'sinden mi türetilmiş?
                     // (Burada tüm filmleri taramak yerine, gelen UUID'nin bir TMDB eşleşmesi olup olmadığını anlamak için
-                    // TmdbService'in search/find metodunu çağıracağız)
+                    // TmdbService'in search/find metodunu çağıracağız)//todo: ileride bu metoda bakilacak
 
-                    // Not: Pratik yol, frontend'in TMDB filmi için "tmdbId" bilgisini de göndermesidir.
+                    // frontend'in TMDB filmi için "tmdbId" bilgisini de göndermesi!
                     // Ama en temiz "Lazy" yol, UUID üzerinden bulamıyorsak hata yerine import sürecini tetiklemektir.
                     throw new BusinessException(messageHelper.getMessage("movie.not.found.please.import"));
                 });
     }
 
-    // Alternatif ve Daha Sağlam Yol:
     @Transactional
     public Movie ensureMovieExists(Long tmdbId, String lang) {
         return movieRepository.findByTmdbId(tmdbId)

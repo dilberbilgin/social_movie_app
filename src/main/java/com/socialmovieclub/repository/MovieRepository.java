@@ -22,7 +22,7 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
     @EntityGraph(attributePaths = {"genres", "translations"})
     Page<Movie> findAll(Specification<Movie> spec, Pageable pageable);
 
-    // List yerine Page dönecek şekilde güncelliyoruz
+    // List yerine Page dönecek
     @EntityGraph(attributePaths = {"genres", "translations"})
     Page<Movie> findAll(Pageable pageable);
 
@@ -49,5 +49,5 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
 }
 
 
-//N+1 Problemi (Performans): Movie listesi dönerken (Örn: toResponseList), her film için genres listesine erişmeye çalışırsan Hibernate her film için ayrı bir SQL atabilir.
+//N+1 Problemi (Performans): Movie listesi dönerken (Örn: toResponseList), her film için genres listesine erişmeye çalışırsa Hibernate her film için ayrı bir SQL atabilir.
 //Çözüm: Repository katmanında @EntityGraph veya JOIN FETCH kullanarak kategorileri tek seferde çekeceğiz.

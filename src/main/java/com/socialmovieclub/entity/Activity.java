@@ -28,6 +28,6 @@ public class Activity extends BaseEntity {
 
     private String content; // Opsiyonel: Yorumun ilk 50 karakteri veya puan değeri gibi
 
-    private String targetImage; // Yeni: Poster veya profil resmi URL'i için
+    private String targetImage; // Poster veya profil resmi URL'i için
     private String targetTitle;
 }

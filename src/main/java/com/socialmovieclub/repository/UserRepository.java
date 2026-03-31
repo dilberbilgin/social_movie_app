@@ -44,6 +44,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT f.following.id FROM Follow f WHERE f.follower.id = :currentUserId AND f.following.id IN :targetIds")
     List<UUID> findFollowedIdsFromList(@Param("currentUserId") UUID currentUserId, @Param("targetIds") List<UUID> targetIds);
-
-
     }
+
+    //todo : incele

@@ -27,7 +27,6 @@ public interface GenreMapper {
     }
 
     // 4. Entity -> Response (Tekil)
-
     @Mapping(target = "title", ignore = true)
     @Mapping(target = "description", ignore = true)
     GenreResponse toResponse(Genre genre, @Context String languageCode);
@@ -48,6 +47,4 @@ public interface GenreMapper {
                     });
         }
     }
-
-
 }

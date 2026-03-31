@@ -15,13 +15,13 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL) // Sadece null olmayan alanları JSON'a basar (Temiz JSON)
+@JsonInclude(JsonInclude.Include.NON_NULL) // Sadece null olmayan alanları JSON'a basar
 public class RestResponse<T> implements java.io.Serializable{
 
-    private static final long serialVersionUID = 1L; // Versiyon kontrolü için iyi bir pratik
+    private static final long serialVersionUID = 1L; // Versiyon kontrolü için
 
     private T data;
-    private Map<String, String> validationErrors; // Validation hataları için özel alan
+    private Map<String, String> validationErrors; // Validation hataları için
     private String message;
     private boolean success;
     private int status;

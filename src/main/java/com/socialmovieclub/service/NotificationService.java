@@ -36,11 +36,6 @@ public class NotificationService {
     // Uygulama ayağa kalktığında bir kez dolacak
     private Map<NotificationType, NotificationStrategy> strategyMap;
 
-    // Stratejileri hızlıca bulmak için Map yapısı
-//    private Map<NotificationType, NotificationStrategy> getStrategyMap() {
-//        return strategies.stream().collect(Collectors.toMap(NotificationStrategy::getType, s -> s));
-//    }
-
     @PostConstruct
     public void init() {
         // Uygulama ayağa kalkarken stratejileri Map'e atar (Performans!)
@@ -48,7 +43,6 @@ public class NotificationService {
                 .collect(Collectors.toMap(NotificationStrategy::getType, s -> s));
     }
 
-//    @Async
     public void createNotification(User recipient, User actor, NotificationType type,
                                    UUID targetId, UUID subTargetId, String targetTitle) {
         if (recipient.getId().equals(actor.getId())) return;
@@ -91,7 +85,7 @@ public class NotificationService {
             emailService.sendHtmlMail(
                     recipient.getEmail(),
                     subject,
-                    subject, // Title olarak da subject'i gönderiyoruz
+                    subject,
                     body,
                     actionUrl,
                     buttonText

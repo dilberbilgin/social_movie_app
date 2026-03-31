@@ -15,7 +15,7 @@ public class ProfileResponse {
     private String username;
     private String firstName;
     private String lastName;
-    private String bio; // Entity'ye ekleyeceğiz
+    private String bio;
     private String profilePictureUrl; // İleride eklenecek
 
     // İstatistikler

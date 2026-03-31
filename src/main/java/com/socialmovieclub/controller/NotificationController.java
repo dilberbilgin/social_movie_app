@@ -19,14 +19,15 @@ import java.util.UUID;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final SecurityService securityService; // Veya SecurityContext üzerinden alan metodun
+    private final SecurityService securityService;
 
     @GetMapping
     public RestResponse<Page<NotificationResponse>> getMyNotifications(Pageable pageable) {
-        User currentUser = securityService.getCurrentUser(); // Mevcut giriş yapmış kullanıcı
+        User currentUser = securityService.getCurrentUser();
         return RestResponse.success(notificationService.getMyNotifications(currentUser, pageable));
     }
 
+    //TODO : BURAYA BAKILCAK
     @PatchMapping("/{id}/read")
     public RestResponse<Void> markAsRead(@PathVariable UUID id) {
         // 1. Önce o anki kullanıcıyı alıyoruz

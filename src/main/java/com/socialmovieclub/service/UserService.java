@@ -50,7 +50,7 @@ public class UserService {
     @Transactional
     public RestResponse<UserResponse> register(UserRegistrationRequest registrationRequest) {
 
-        // 1. Önce kontrol et (Duplicate check)
+        // 1. Önce kontrol et
         if (userRepository.existsByUsername(registrationRequest.getUsername())) {
             throw new BusinessException(messageHelper.getMessage("user.username.already.exists"));
         }
@@ -109,7 +109,7 @@ public class UserService {
                 .movieCount(movieCount)
                 .followerCount(followerCount)
                 .followingCount(followingCount)
-                .recentRatings(recentRatingResponses) // Bu artık Page tipinde!
+                .recentRatings(recentRatingResponses) // Page tipinde!
                 .recentActivities(activityResponses)
                 .isFollowing(checkIfCurrentUserFollows(user.getId()))
                 .build();
@@ -117,7 +117,7 @@ public class UserService {
         return success(profile);
     }
 
-    // Yardımcı Metot: Activity -> ActivityResponse dönüşümü
+    //  Activity -> ActivityResponse dönüşümü
     private ActivityResponse mapActivityToResponse(Activity activity) {
         return ActivityResponse.builder()
                 .id(activity.getId())

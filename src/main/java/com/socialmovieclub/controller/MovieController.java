@@ -3,6 +3,7 @@ package com.socialmovieclub.controller;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.dto.request.MovieCreateRequest;
 import com.socialmovieclub.dto.response.MovieResponse;
+import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.service.MovieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,14 +51,28 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
         return movieService.getTrendingMovies(lang);
     }
 
+//    @GetMapping("/{id}")
+//    public RestResponse<MovieResponse> getMovieDetail(
+//            @PathVariable UUID id,
+//            @RequestParam(required = false) Long tmdbId, // TMDB ID'yi de parametre olarak alabilmeliyiz
+//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+//
+//        return movieService.getMovieDetail(id, tmdbId, lang);
+//    }
+
     @GetMapping("/{id}")
     public RestResponse<MovieResponse> getMovieDetail(
-            @PathVariable UUID id,
-            @RequestParam(required = false) Long tmdbId, // TMDB ID'yi de parametre olarak alabilmeliyiz
-            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+            @PathVariable String id, // String olmalı. kendi db'imizde veri kalmayinca aramada tmdb den geliyor. long ve uuid olunca string yapiyoruz burda.
+            @RequestParam(required = false) Long tmdbId,
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+            Pageable pageable) {
 
-        // Eski metot (getMovieById) yerine yeni yazdığımız (getMovieDetail) metodunu çağırıyoruz
-        return movieService.getMovieDetail(id, tmdbId, lang);
+        // İş mantığına göndermeden önce basit kontrol
+        UUID movieUuid = null;
+        if (id != null && !id.equals("0")) {
+            try { movieUuid = UUID.fromString(id); } catch (Exception e) { /* null kalabilir */ }
+        }
+        return movieService.getMovieDetail(movieUuid, tmdbId, lang);
     }
 
     @GetMapping("/search")
@@ -84,6 +99,4 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
             Pageable pageable) {
         return movieService.getSuggestedMovies(lang, pageable);
     }
-
-
 }

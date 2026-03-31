@@ -21,6 +21,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -56,36 +61,35 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Herkese Açık Kapılar
+                        // 1. ÖNCELİKLİ İZİNLER (Public)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/search/**").permitAll()
-                        .requestMatchers("/ws-notifications/**").permitAll() // WebSocket bağlantısına izin ver
+                        .requestMatchers("/ws-notifications/**").permitAll()
 
-                        // 2. İçerik Görüntüleme (GET istekleri genelde açık)
+                        // 2. GET İSTEKLERİ (Tüm alt kırılımlarıyla birlikte açıyoruz)
                         .requestMatchers(HttpMethod.GET, "/api/movies/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/movies/discover").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/movies/suggestions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/genres/**").permitAll()
+                        // BURASI KRİTİK: Hem movie id hem de sayfalamayı kapsar
                         .requestMatchers(HttpMethod.GET, "/api/comments/movie/**").permitAll()
-                        .requestMatchers("/api/tmdb/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/profile/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/follows/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/profile/**").permitAll() // Profilleri herkes görebilsin
-                       .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/tmdb/**").permitAll()
 
-                        // 3. Kimlik Doğrulama Gerektiren Aksiyonlar
-                        .requestMatchers(HttpMethod.POST, "/api/comments/**").authenticated() // Hem add hem like/dislike kapsar
+                        // 3. AUTHENTICATED GEREKTİREN ÖZEL POST/PUT İSTEKLERİ
+                        // Sıralama: Önce spesifik yollar, sonra genel yollar
+                        .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/comments/*/like", "/api/comments/*/dislike").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/movies/*/like", "/api/movies/*/dislike").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/comments/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/comments/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/ratings/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/follows/**").authenticated()
-
-                        // PROFİL GÜNCELLEME (PUT)
                         .requestMatchers(HttpMethod.PUT, "/api/users/profile/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/comments/**").authenticated()
 
-                        // 4. Geri Kalan Her Şey (EN SONDA VE SADECE BİR KEZ OLMALI)
+                        // 4. SON KALE
                         .anyRequest().authenticated()
                 )
+
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 

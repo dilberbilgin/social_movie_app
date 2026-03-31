@@ -43,6 +43,4 @@ public class GenreService {
 
         return success(responseData);
     }
-
-
 }

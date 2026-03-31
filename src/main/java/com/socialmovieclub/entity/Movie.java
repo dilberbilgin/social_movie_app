@@ -69,13 +69,12 @@ public class Movie extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "genre_id") //Bu tablodaki kategori ID kolonu
     )
     private Set<Genre> genres = new HashSet<>();
-    //Best practice Set kullanmaktir(List yerine). Bir filmin veya kategorinin ayni dilde iki tane cevirisi olamaz.
+    //Best practice Set (List yerine). Bir filmin veya kategorinin ayni dilde iki tane cevirisi olamaz.
     // Set, veri tabani seviyesinde mukerrer kaydi onlemeye yardimci olur ve
     //Hibernate'in bazı performans sorunlarını (özellikle birden fazla liste olduğundaki "MultipleBagFetchException") engeller.
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
-
 
     // Rating ilişkisi: Veritabanında Movie tablosu ile Rating tablosunu birbirine bağlar.
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
