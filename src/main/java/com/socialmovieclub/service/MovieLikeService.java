@@ -31,7 +31,7 @@ public class MovieLikeService {
     private final MovieService movieService;
 
     @Transactional
-    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true) // Cache'i temizler, sayı güncellenir
+    @CacheEvict(value = {CacheConstants.FEED_CACHE, "movieDetails"}, allEntries = true) // Cache'i temizler, sayı güncellenir. Not: allEntries = true yerine key = "#movieId" kullanarak sadece o filmin cache'ini silmek performansı daha da artırır.
     public RestResponse<UUID> handleMovieReaction(UUID movieId, Long tmdbId, boolean isLike, String lang) {
         User user = securityService.getCurrentUser();
         Movie movie;

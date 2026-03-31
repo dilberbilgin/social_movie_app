@@ -10,6 +10,7 @@ import com.socialmovieclub.mapper.GenreMapper;
 import com.socialmovieclub.repository.GenreRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -37,6 +38,7 @@ public class GenreService {
         return success(responseData, messageHelper.getMessage("genre.create.success"));
     }
 
+    @Cacheable(value = "genres", key = "#lang")
     public RestResponse<List<GenreResponse>> getAllGenres(String lang) {
         List<Genre> genres = genreRepository.findAll();
         List<GenreResponse> responseData = genreMapper.toResponseList(genres, lang );

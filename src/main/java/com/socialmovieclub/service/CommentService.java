@@ -105,6 +105,7 @@ public class CommentService {
     }
 
     @Transactional
+    @CacheEvict(value = "movieComments", key = "#commentId") // Yorumlara özel cache varsa
     public RestResponse<Void> handleCommentReaction(UUID commentId, boolean isLike) {
         User currentUser = securityService.getCurrentUser();
         Comment comment = getCommentOrThrow(commentId);

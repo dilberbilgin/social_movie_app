@@ -4,6 +4,7 @@ import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.dto.response.GlobalSearchResponse;
 import com.socialmovieclub.dto.response.SearchResultDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ public class GlobalSearchService {
     // Spring, SearchProvider interface'ini implement eden tüm class'ları buraya enjekte eder.
     private final List<SearchProvider> providers;
 
+    @Cacheable(value = "globalSearch", key = "{#query, #lang}", unless = "#query.length() < 3")
     public RestResponse<GlobalSearchResponse> executeSearch(String query, String lang) {
         // Hızlı kontrol
         if (query == null || query.trim().length() < 2) {

@@ -12,6 +12,8 @@ import com.socialmovieclub.mapper.MovieMapper;
 import com.socialmovieclub.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +43,7 @@ public class MovieService {
 
     @Transactional
     //Admin veya sistem tarafından manuel film eklemek için
+    @CacheEvict(value = {"trendingMovies", "topRatedMovies", "globalSearch"}, allEntries = true)
     public RestResponse<MovieResponse> createMovie(MovieCreateRequest request, String lang) {
 
         // 1. İş Kuralı Kontrolü (Dinamik ve Çok Dilli)
@@ -89,7 +92,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
 
     return success(responsePage);
 }
-
+    @Cacheable(value = "trendingMovies", key = "#lang")
     public RestResponse<List<MovieResponse>> getTopRatedMovies(String lang) {
         List<Movie> movies = movieRepository.findTop10ByOrderByClubRatingDesc();
         List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
@@ -97,6 +100,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return success(responseData, messageHelper.getMessage("common.success"));
     }
 
+    @Cacheable(value = "trendingMovies", key = "#lang")
     public RestResponse<List<MovieResponse>> getTrendingMovies(String lang) {
         // Repository'de yazdığımız "En çok oylanan ilk 10" sorgusunu çağırıyoruz
         List<Movie> movies = movieRepository.findTop10ByOrderByClubVoteCountDesc();
@@ -172,6 +176,8 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
 
     // Sadece UUID değil, opsiyonel olarak tmdbId de alabiliriz
 // veya UUID üzerinden bulunamadığında TMDB kontrolü yapabiliriz.
+
+    @Cacheable(value = "movieDetails", key = "{#id, #tmdbId, #lang}", unless = "#result == null")
     public RestResponse<MovieResponse> getMovieDetail(UUID id, Long tmdbId, String lang) {
         Movie movie;
 
