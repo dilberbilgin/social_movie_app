@@ -42,7 +42,8 @@ public class CommentService {
     private final NotificationService notificationService;
 
     @Transactional
-    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true)
+//    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true)
+    @CacheEvict(value = {"movieDetails", "trendingMovies", "topRatedMovies"}, allEntries = true) // Cache'i temizle!
     public RestResponse<CommentResponse> createComment(CommentRequest request) {
         User user = securityService.getCurrentUser();
         Movie movie = getMovieOrThrow(request.getMovieId());

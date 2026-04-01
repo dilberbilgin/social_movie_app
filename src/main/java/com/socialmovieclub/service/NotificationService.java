@@ -31,7 +31,7 @@ public class NotificationService {
     private final NotificationMapper notificationMapper;
     private final List<NotificationStrategy> strategies;
     private final SimpMessagingTemplate messagingTemplate;
-    private final EmailService emailService;
+//    private final EmailService emailService;
     private final MessageHelper messageHelper;
 
     // Uygulama ayağa kalktığında bir kez dolacak
@@ -83,14 +83,14 @@ public class NotificationService {
             String actionUrl = frontendUrl + "/notifications";
             String buttonText = messageHelper.getMessage("mail.button.view", lang);
 
-            emailService.sendHtmlMail(
-                    recipient.getEmail(),
-                    subject,
-                    subject,
-                    body,
-                    actionUrl,
-                    buttonText
-            );
+//            emailService.sendHtmlMail(
+//                    recipient.getEmail(),
+//                    subject,
+//                    subject,
+//                    body,
+//                    actionUrl,
+//                    buttonText
+//            );
         }
     }
 

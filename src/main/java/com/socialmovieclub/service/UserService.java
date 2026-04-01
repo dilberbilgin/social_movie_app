@@ -169,4 +169,6 @@ public class UserService {
 
         return success(users.stream().map(userMapper::toResponse).toList(), "Suggestions fetched");
     }
+
+
 }
