@@ -5,5 +5,6 @@ public enum ActivityType {
     MOVIE_RATE,      // Filme puan verdi
     COMMENT_CREATE,  // Yorum yaptı
     COMMENT_LIKE,    // Yoruma beğeni attı
-    FOLLOW_USER      // Birini takip etmeye başladı
+    FOLLOW_USER,      // Birini takip etmeye başladı
+    COLLECTION_CREATE
 }

@@ -55,6 +55,7 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -65,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/search/**").permitAll()
                         .requestMatchers("/ws-notifications/**").permitAll()
+
 
                         // 2. GET İSTEKLERİ (Tüm alt kırılımlarıyla birlikte açıyoruz)
                         .requestMatchers(HttpMethod.GET, "/api/movies/**").permitAll()
@@ -77,6 +79,7 @@ public class SecurityConfig {
 
                         // 3. AUTHENTICATED GEREKTİREN ÖZEL POST/PUT İSTEKLERİ
                         // Sıralama: Önce spesifik yollar, sonra genel yollar
+                        .requestMatchers("/api/collections/**").authenticated()
                         .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/comments/*/like", "/api/comments/*/dislike").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/movies/*/like", "/api/movies/*/dislike").authenticated()
@@ -84,7 +87,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/ratings/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/follows/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/users/profile/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/comments/**").authenticated()
+
 
                         // 4. SON KALE
                         .anyRequest().authenticated()

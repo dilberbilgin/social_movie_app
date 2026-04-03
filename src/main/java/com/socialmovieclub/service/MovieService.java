@@ -212,7 +212,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return success(response);
     }
 
-    private void enrichMovieWithLikes(MovieResponse dto) {
+    public void enrichMovieWithLikes(MovieResponse dto) {
         // Eğer film henüz DB'de yoksa (ID null ise) zenginleştirme yapma, varsayılan kalsın
         if (dto.getId() == null) {
             dto.setLikeCount(0L);

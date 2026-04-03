@@ -109,6 +109,12 @@ public class UserService {
                 .movieCount(movieCount)
                 .followerCount(followerCount)
                 .followingCount(followingCount)
+
+//                // Takip etmiyorsa sayıları 0 göster veya null dön (Frontend'de kilit gösterirsin)
+//                .movieCount(isOwnProfile || isFollowing ? movieCount : 0)
+//                .followerCount(isOwnProfile || isFollowing ? followerCount : 0)
+//                .followingCount(isOwnProfile || isFollowing ? followingCount : 0)
+//
                 .recentRatings(recentRatingResponses) // Page tipinde!
                 .recentActivities(activityResponses)
                 .isFollowing(checkIfCurrentUserFollows(user.getId()))
@@ -116,6 +122,57 @@ public class UserService {
 
         return success(profile);
     }
+
+//    public RestResponse<ProfileResponse> getUserProfile(String username, String lang, Pageable pageable) {
+//        // 1. Sayfasına bakılan kullanıcıyı bul (Örn: Test 5)
+//        User targetUser = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
+//
+//        // 2. Bakan kullanıcıyı bul (Örn: Test 2)
+//        User currentUser = securityService.getUserIfLoggedIn().orElse(null);
+//
+//        boolean isOwnProfile = currentUser != null && currentUser.getId().equals(targetUser.getId());
+//        boolean isFollowing = currentUser != null && followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUser.getId());
+//
+//        // 3. İstatistikler (Bunlar her zaman görünebilir, profil başlığında sayı olarak durur)
+//        long movieCount = ratingRepository.countByUserId(targetUser.getId());
+//        long followerCount = followRepository.countByFollowingId(targetUser.getId());
+//        long followingCount = followRepository.countByFollowerId(targetUser.getId());
+//
+//        // 4. VERİ ERİŞİM KONTROLÜ (KRİTİK NOKTA)
+//        Page<RatingResponse> recentRatingResponses = Page.empty();
+//        Page<ActivityResponse> activityResponses = Page.empty();
+//
+//        // Eğer kendi profilimse VEYA takip ediyorsam verileri doldur
+//        if (isOwnProfile || isFollowing) {
+//            // Ratingleri çek
+//            Page<Rating> ratingsPage = ratingRepository.findAllByUserIdOrderByCreatedDateDesc(targetUser.getId(), pageable);
+//            recentRatingResponses = ratingsPage.map(rating -> ratingMapper.toResponse(rating, lang));
+//
+//            // Aktiviteleri çek
+//            Page<Activity> activities = activityRepository.findByUserIdOrderByCreatedDateDesc(targetUser.getId(), pageable);
+//            activityResponses = activities.map(this::mapActivityToResponse);
+//        }
+//        // Aksi takdirde (takip etmiyorsa) yukarıdaki Page.empty() değerleri döner,
+//        // böylece Test 2, Test 5'in aktivitelerini "boş" görür.
+//
+//        // 5. Response oluştur
+//        ProfileResponse profile = ProfileResponse.builder()
+//                .id(targetUser.getId())
+//                .username(targetUser.getUsername())
+//                .firstName(targetUser.getFirstName())
+//                .lastName(targetUser.getLastName())
+//                .bio(targetUser.getBio())
+//                .movieCount(movieCount)
+//                .followerCount(followerCount)
+//                .followingCount(followingCount)
+//                .recentRatings(recentRatingResponses)
+//                .recentActivities(activityResponses)
+//                .isFollowing(isFollowing)
+//                .build();
+//
+//        return success(profile);
+//    }
 
     //  Activity -> ActivityResponse dönüşümü
     private ActivityResponse mapActivityToResponse(Activity activity) {
