@@ -77,102 +77,105 @@ public class UserService {
         return  RestResponse.success(userMapper.toResponse(user), "User fetched");
     }
 
-    public RestResponse<ProfileResponse> getUserProfile(String username, String lang, Pageable pageable) {
-        // 1. Kullanıcıyı bul
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
-
-        // 2. İstatistikleri DB'den direkt COUNT sorgusuyla al (PERFORMANS İÇİN)
-        long movieCount = ratingRepository.countByUserId(user.getId()); // Repository'e ekleyeceğiz
-        long followerCount = followRepository.countByFollowingId(user.getId());
-        long followingCount = followRepository.countByFollowerId(user.getId());
-
-        // 3. Sayfalı Rating verisini çek (findTop10... yerine findAllByUserId... + Pageable)
-        //Sayfalı Rating verisini çek (Grid görünümü için hala lazım olabilir)
-        Page<Rating> ratingsPage = ratingRepository.findAllByUserIdOrderByCreatedDateDesc(user.getId(), pageable);
-        // 4. Page.map() ile DTO ve Dil dönüşümü
-        Page<RatingResponse> recentRatingResponses = ratingsPage.map(rating -> ratingMapper.toResponse(rating, lang));
-
-        //  TÜM Aktiviteleri çek (Feed görünümü için)
-        Page<Activity> activities = activityRepository.findByUserIdOrderByCreatedDateDesc(user.getId(), pageable);
-
-        //  Map işlemi (DİKKAT: Burada FeedService'deki mantığı kullanıyoruz)
-        Page<ActivityResponse> activityResponses = activities.map(this::mapActivityToResponse);
-
-        // 5. Response oluştur
-        ProfileResponse profile = ProfileResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .bio(user.getBio())
-                .movieCount(movieCount)
-                .followerCount(followerCount)
-                .followingCount(followingCount)
-
-//                // Takip etmiyorsa sayıları 0 göster veya null dön (Frontend'de kilit gösterirsin)
-//                .movieCount(isOwnProfile || isFollowing ? movieCount : 0)
-//                .followerCount(isOwnProfile || isFollowing ? followerCount : 0)
-//                .followingCount(isOwnProfile || isFollowing ? followingCount : 0)
-//
-                .recentRatings(recentRatingResponses) // Page tipinde!
-                .recentActivities(activityResponses)
-                .isFollowing(checkIfCurrentUserFollows(user.getId()))
-                .build();
-
-        return success(profile);
-    }
-
 //    public RestResponse<ProfileResponse> getUserProfile(String username, String lang, Pageable pageable) {
-//        // 1. Sayfasına bakılan kullanıcıyı bul (Örn: Test 5)
-//        User targetUser = userRepository.findByUsername(username)
+//        // 1. Kullanıcıyı bul
+//        User user = userRepository.findByUsername(username)
 //                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
 //
-//        // 2. Bakan kullanıcıyı bul (Örn: Test 2)
-//        User currentUser = securityService.getUserIfLoggedIn().orElse(null);
+//        // 2. İstatistikleri DB'den direkt COUNT sorgusuyla al (PERFORMANS İÇİN)
+//        long movieCount = ratingRepository.countByUserId(user.getId()); // Repository'e ekleyeceğiz
+//        long followerCount = followRepository.countByFollowingId(user.getId());
+//        long followingCount = followRepository.countByFollowerId(user.getId());
 //
-//        boolean isOwnProfile = currentUser != null && currentUser.getId().equals(targetUser.getId());
-//        boolean isFollowing = currentUser != null && followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUser.getId());
+//        // 3. Sayfalı Rating verisini çek (findTop10... yerine findAllByUserId... + Pageable)
+//        //Sayfalı Rating verisini çek (Grid görünümü için hala lazım olabilir)
+//        Page<Rating> ratingsPage = ratingRepository.findAllByUserIdOrderByCreatedDateDesc(user.getId(), pageable);
+//        // 4. Page.map() ile DTO ve Dil dönüşümü
+//        Page<RatingResponse> recentRatingResponses = ratingsPage.map(rating -> ratingMapper.toResponse(rating, lang));
 //
-//        // 3. İstatistikler (Bunlar her zaman görünebilir, profil başlığında sayı olarak durur)
-//        long movieCount = ratingRepository.countByUserId(targetUser.getId());
-//        long followerCount = followRepository.countByFollowingId(targetUser.getId());
-//        long followingCount = followRepository.countByFollowerId(targetUser.getId());
+//        //  TÜM Aktiviteleri çek (Feed görünümü için)
+//        Page<Activity> activities = activityRepository.findByUserIdOrderByCreatedDateDesc(user.getId(), pageable);
 //
-//        // 4. VERİ ERİŞİM KONTROLÜ (KRİTİK NOKTA)
-//        Page<RatingResponse> recentRatingResponses = Page.empty();
-//        Page<ActivityResponse> activityResponses = Page.empty();
-//
-//        // Eğer kendi profilimse VEYA takip ediyorsam verileri doldur
-//        if (isOwnProfile || isFollowing) {
-//            // Ratingleri çek
-//            Page<Rating> ratingsPage = ratingRepository.findAllByUserIdOrderByCreatedDateDesc(targetUser.getId(), pageable);
-//            recentRatingResponses = ratingsPage.map(rating -> ratingMapper.toResponse(rating, lang));
-//
-//            // Aktiviteleri çek
-//            Page<Activity> activities = activityRepository.findByUserIdOrderByCreatedDateDesc(targetUser.getId(), pageable);
-//            activityResponses = activities.map(this::mapActivityToResponse);
-//        }
-//        // Aksi takdirde (takip etmiyorsa) yukarıdaki Page.empty() değerleri döner,
-//        // böylece Test 2, Test 5'in aktivitelerini "boş" görür.
+//        //  Map işlemi (DİKKAT: Burada FeedService'deki mantığı kullanıyoruz)
+//        Page<ActivityResponse> activityResponses = activities.map(this::mapActivityToResponse);
 //
 //        // 5. Response oluştur
 //        ProfileResponse profile = ProfileResponse.builder()
-//                .id(targetUser.getId())
-//                .username(targetUser.getUsername())
-//                .firstName(targetUser.getFirstName())
-//                .lastName(targetUser.getLastName())
-//                .bio(targetUser.getBio())
+//                .id(user.getId())
+//                .username(user.getUsername())
+//                .firstName(user.getFirstName())
+//                .lastName(user.getLastName())
+//                .bio(user.getBio())
 //                .movieCount(movieCount)
 //                .followerCount(followerCount)
 //                .followingCount(followingCount)
-//                .recentRatings(recentRatingResponses)
+//
+////                // Takip etmiyorsa sayıları 0 göster veya null dön (Frontend'de kilit gösterirsin)
+////                .movieCount(isOwnProfile || isFollowing ? movieCount : 0)
+////                .followerCount(isOwnProfile || isFollowing ? followerCount : 0)
+////                .followingCount(isOwnProfile || isFollowing ? followingCount : 0)
+////
+//                .recentRatings(recentRatingResponses) // Page tipinde!
 //                .recentActivities(activityResponses)
-//                .isFollowing(isFollowing)
+//                .isFollowing(checkIfCurrentUserFollows(user.getId()))
 //                .build();
 //
 //        return success(profile);
 //    }
+
+    public RestResponse<ProfileResponse> getUserProfile(String username, String lang, Pageable pageable) {
+        // 1. Sayfasına bakılan kullanıcıyı bul (Örn: Test 5)
+        User targetUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("user.not.found")));
+
+        // 2. Bakan kullanıcıyı bul (Örn: Test 2)
+        User currentUser = securityService.getUserIfLoggedIn().orElse(null);
+
+        boolean isOwnProfile = currentUser != null && currentUser.getId().equals(targetUser.getId());
+        boolean isFollowing = currentUser != null && followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUser.getId());
+
+        // 3. İstatistikler (Bunlar her zaman görünebilir, profil başlığında sayı olarak durur)
+        long movieCount = ratingRepository.countByUserId(targetUser.getId());
+        long followerCount = followRepository.countByFollowingId(targetUser.getId());
+        long followingCount = followRepository.countByFollowerId(targetUser.getId());
+
+        // 4. VERİ ERİŞİM KONTROLÜ (KRİTİK NOKTA)
+        Page<RatingResponse> recentRatingResponses = Page.empty();
+        Page<ActivityResponse> activityResponses = Page.empty();
+
+        // Eğer kendi profilimse VEYA takip ediyorsam verileri doldur
+        if (isOwnProfile || isFollowing) {
+            // Ratingleri çek
+            Page<Rating> ratingsPage = ratingRepository.findAllByUserIdOrderByCreatedDateDesc(targetUser.getId(), pageable);
+            recentRatingResponses = ratingsPage.map(rating -> ratingMapper.toResponse(rating, lang));
+
+            // Aktiviteleri çek
+            Page<Activity> activities = activityRepository.findByUserIdOrderByCreatedDateDesc(targetUser.getId(), pageable);
+            activityResponses = activities.map(this::mapActivityToResponse);
+        }
+        // Aksi takdirde (takip etmiyorsa) yukarıdaki Page.empty() değerleri döner,
+        // böylece Test 2, Test 5'in aktivitelerini "boş" görür.
+
+        // 5. Response oluştur
+        ProfileResponse profile = ProfileResponse.builder()
+                .id(targetUser.getId())
+                .username(targetUser.getUsername())
+                .firstName(targetUser.getFirstName())
+                .lastName(targetUser.getLastName())
+                .bio(targetUser.getBio())
+                .movieCount(isOwnProfile || isFollowing ? movieCount : 0)
+                .followerCount(isOwnProfile || isFollowing ? followerCount : 0)
+                .followingCount(isOwnProfile || isFollowing ? followingCount : 0)
+//                .movieCount(movieCount)
+//                .followerCount(followerCount)
+//                .followingCount(followingCount)
+                .recentRatings(recentRatingResponses)
+                .recentActivities(activityResponses)
+                .isFollowing(isFollowing)
+                .build();
+
+        return success(profile);
+    }
 
     //  Activity -> ActivityResponse dönüşümü
     private ActivityResponse mapActivityToResponse(Activity activity) {
