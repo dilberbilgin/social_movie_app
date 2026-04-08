@@ -87,8 +87,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/ratings/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/follows/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/users/profile/**").authenticated()
-
-
+                        .requestMatchers(HttpMethod.GET, "/api/v1/weekly-winners/**").permitAll() // Kazananı herkes görsün
+//                        .requestMatchers("/api/v1/weekly-winners/test-trigger").hasRole("ADMIN") // Sadece Admin tetikleyebilsin (veya geçici permitAll)
+                                .requestMatchers("/api/v1/weekly-winners/test-trigger").permitAll() // TEST İÇİN HERKESE AÇTIK
                         // 4. SON KALE
                         .anyRequest().authenticated()
                 )

@@ -19,15 +19,18 @@ import com.socialmovieclub.repository.CommentRepository;
 import com.socialmovieclub.repository.MovieRepository;
 import com.socialmovieclub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -40,11 +43,13 @@ public class CommentService {
     private final ActivityService activityService;
     private final SecurityService securityService;
     private final NotificationService notificationService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Transactional
 //    @CacheEvict(value = CacheConstants.FEED_CACHE, allEntries = true)
     @CacheEvict(value = {"movieDetails", "trendingMovies", "topRatedMovies"}, allEntries = true) // Cache'i temizle!
     public RestResponse<CommentResponse> createComment(CommentRequest request) {
+        log.info("Adding new comment for movie: {}", request.getMovieId());
         User user = securityService.getCurrentUser();
         Movie movie = getMovieOrThrow(request.getMovieId());
 
@@ -112,6 +117,7 @@ public class CommentService {
     @Transactional
     @CacheEvict(value = "movieComments", key = "#commentId") // Yorumlara özel cache varsa
     public RestResponse<Void> handleCommentReaction(UUID commentId, boolean isLike) {
+        log.info("Processing reaction for comment: {} by user: {}", commentId, securityService.getCurrentUserId());
         User currentUser = securityService.getCurrentUser();
         Comment comment = getCommentOrThrow(commentId);
 
@@ -138,6 +144,11 @@ public class CommentService {
 
             // --- BİLDİRİM VE AKTİVİTE: İlk kez beğenildiğinde ---
             if (isLike) {
+                redisTemplate.opsForZSet().incrementScore(
+                        CacheConstants.WEEKLY_COMMENT_RANKING,
+                        commentId.toString(),
+                        1
+                );
                 // Bildirim ve Aktivite için metin kısaltma
                 String truncatedContent = StringUtil.truncate(comment.getContent(), 30);
                 // Bildirim Gönder (Yorum sahibine)
