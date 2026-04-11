@@ -32,12 +32,12 @@ public class MovieLikeService {
 
     @Transactional
     @CacheEvict(value = {CacheConstants.FEED_CACHE, "movieDetails"}, allEntries = true) // Cache'i temizler, sayı güncellenir. Not: allEntries = true yerine key = "#movieId" kullanarak sadece o filmin cache'ini silmek performansı daha da artırır.
-    public RestResponse<UUID> handleMovieReaction(UUID movieId, Long tmdbId, boolean isLike, String lang) {
+    public RestResponse<UUID> handleMovieReaction(UUID movieId, Long tmdbId, boolean isLike, String contentType,  String lang) {
         User user = securityService.getCurrentUser();
         Movie movie;
         if (tmdbId != null) {
             // Otomatik import veya mevcut olanı getir
-            movie = movieService.ensureMovieExists(tmdbId, lang);
+            movie = movieService.ensureMovieExists(tmdbId, contentType, lang);
         } else {
             // Sadece yerel DB'de ara
             movie = movieRepository.findById(movieId)

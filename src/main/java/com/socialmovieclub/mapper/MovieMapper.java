@@ -71,17 +71,23 @@ public interface MovieMapper {
         response.setDescription(translation.getDescription());
     }
 
+
+    @Mapping(target = "contentType", expression = "java(dto.getMediaType() != null ? dto.getMediaType().toUpperCase() : \"MOVIE\")")
+
     // TMDB DTO -> Response
    // @Mapping(target = "id", ignore = true) // DB'de olmadığı için UUID'si yok
     @Mapping(target = "tmdbId", source = "dto.id") // TMDB'nin id'sini bizim tmdbId alanına eşle// DTO'daki id'yi entity'deki tmdbId'ye sakla
     @Mapping(target = "id", expression = "java(mapTmdbIdToUuid(dto.getId()))")
     @Mapping(target = "tmdbRating", source = "dto.voteAverage") // TMDB'den gelen puanı eşle
-    @Mapping(target = "title", source = "dto.title")
+   // @Mapping(target = "title", source = "dto.title")
+    @Mapping(target = "title", expression = "java(dto.getTitle() != null ? dto.getTitle() : dto.getName())")
     @Mapping(target = "description", source = "dto.overview")
-    @Mapping(target = "releaseYear", expression = "java(extractYear(dto.getReleaseDate()))")
+   // @Mapping(target = "releaseYear", expression = "java(extractYear(dto.getReleaseDate()))")
+    @Mapping(target = "releaseYear", expression = "java(extractYear(dto.getReleaseDate() != null ? dto.getReleaseDate() : dto.getFirstAirDate()))")
 //    @Mapping(target = "posterUrl", expression = "java(dto.getPosterPath() != null ? \"https://image.tmdb.org/t/p/w500\" + dto.getPosterPath() : null)")
     @Mapping(target = "posterUrl", source = "dto.posterPath", qualifiedByName = "posterUrlMapper")
-    @Mapping(target = "originalTitle", source = "dto.originalTitle")
+  //  @Mapping(target = "originalTitle", source = "dto.originalTitle")
+    @Mapping(target = "originalTitle", expression = "java(dto.getOriginalTitle() != null ? dto.getOriginalTitle() : dto.getOriginalName())")
     @Mapping(target = "genres", ignore = true)
 //    @Mapping(target = "clubRating", ignore = true) // TMDB aramasında henüz bizim puanımız olamaz
 //    @Mapping(target = "clubVoteCount", ignore = true)

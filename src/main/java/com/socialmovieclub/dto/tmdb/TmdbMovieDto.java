@@ -7,10 +7,13 @@ import java.util.List;
 
 @Data
 public class TmdbMovieDto {
-    private Long id; // TMDB'nin kendi sayısal ID'si
+    private Long id; // TMDB'nin kendi sayısal ID'si. Filmler icin
 
     @JsonProperty("original_title")
-    private String originalTitle;
+    private String originalTitle; // Filmler için
+
+    @JsonProperty("original_name")
+    private String originalName; // Diziler için
 
     @JsonProperty("imdb_id") // TMDB detay sorgusunda bu alan gelir
     private String imdbId;
@@ -18,10 +21,17 @@ public class TmdbMovieDto {
     @JsonProperty("overview")
     private String overview; // Film açıklaması (Biz bunu Translation'a koyacağız)
 
+    private String name; // Dizi başlığı
     private String title; // Film başlığı (Biz bunu Translation'a koyacağız)
 
     @JsonProperty("release_date")
     private String releaseDate;
+
+    @JsonProperty("first_air_date")
+    private String firstAirDate;
+
+    @JsonProperty("media_type")
+    private String mediaType; // search/multi'de "movie" veya "tv" olarak döner
 
     @JsonProperty("poster_path")
     private String posterPath;

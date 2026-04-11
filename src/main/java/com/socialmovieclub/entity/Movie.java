@@ -79,4 +79,7 @@ public class Movie extends BaseEntity {
     // Rating ilişkisi: Veritabanında Movie tablosu ile Rating tablosunu birbirine bağlar.
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Rating> ratings = new ArrayList<>();
+
+    @Column(name = "content_type")
+    private String contentType = "MOVIE"; // Varsayılan değer. "TV" veya "MOVIE" olacak.
 }

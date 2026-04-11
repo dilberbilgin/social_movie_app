@@ -64,15 +64,17 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
     public RestResponse<MovieResponse> getMovieDetail(
             @PathVariable String id, // String olmalı. kendi db'imizde veri kalmayinca aramada tmdb den geliyor. long ve uuid olunca string yapiyoruz burda.
             @RequestParam(required = false) Long tmdbId,
+            @RequestParam(required = false, defaultValue = "MOVIE") String contentType,
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
             Pageable pageable) {
 
         // İş mantığına göndermeden önce basit kontrol
         UUID movieUuid = null;
-        if (id != null && !id.equals("0")) {
+//        if (id != null && !id.equals("0")) {
+        if (id != null && !id.equals("0") && id.length() > 10) { // UUID formatı kontrolü
             try { movieUuid = UUID.fromString(id); } catch (Exception e) { /* null kalabilir */ }
         }
-        return movieService.getMovieDetail(movieUuid, tmdbId, lang);
+        return movieService.getMovieDetail(movieUuid, tmdbId, contentType, lang);
     }
 
     @GetMapping("/search")
@@ -87,10 +89,11 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
 
     @GetMapping("/discover")
     public RestResponse<Page<MovieResponse>> discover(
+            @RequestParam(defaultValue = "MOVIE") String contentType,
             @RequestParam(required = false) UUID genreId,
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
             Pageable pageable) {
-        return movieService.getDiscoverMovies(genreId, lang, pageable);
+        return movieService.getDiscoverMovies(contentType, genreId, lang, pageable);
     }
 
     @GetMapping("/suggestions")

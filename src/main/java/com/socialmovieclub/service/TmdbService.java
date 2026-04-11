@@ -90,7 +90,7 @@ public class TmdbService {
     }
 
     @Transactional
-    public Movie importMovieEntity(Long tmdbId, String currentLang) {
+    public Movie importMovieEntity(Long tmdbId, String contentType, String currentLang) {
         // 1. Kontrol: Bu film zaten var mı? (Çift kontrol)
         Optional<Movie> existingMovie = movieRepository.findByTmdbId(tmdbId);
         if (existingMovie.isPresent()) {
@@ -98,7 +98,9 @@ public class TmdbService {
         }
 
         // 2. Filmin ana bilgilerini al
-        String mainUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId)
+        String typePath = "TV".equalsIgnoreCase(contentType) ? "/tv/" : "/movie/";
+        String mainUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + typePath + tmdbId)
+//        String mainUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId)
                 .queryParam("api_key", apiKey)
                 .toUriString();
 
@@ -109,11 +111,23 @@ public class TmdbService {
         Movie movie = new Movie();
         movie.setTmdbId(mainData.getId());
         movie.setImdbId(mainData.getImdbId());
-        movie.setOriginalTitle(mainData.getOriginalTitle());
+
+        // Dizi ise 'name', film ise 'original_title' (TMDB farkı)
+        String originalTitle = mainData.getOriginalTitle() != null ? mainData.getOriginalTitle() : mainData.getOriginalName();
+        movie.setOriginalTitle(originalTitle);
+       // movie.setOriginalTitle(mainData.getOriginalTitle());
+
         movie.setTmdbRating(mainData.getVoteAverage());
         movie.setPosterUrl(mainData.getPosterPath());
-        if (mainData.getReleaseDate() != null && mainData.getReleaseDate().length() >= 4) {
-            movie.setReleaseYear(Integer.parseInt(mainData.getReleaseDate().substring(0, 4)));
+        movie.setContentType(contentType.toUpperCase()); // Mutlaka kaydet!
+
+//        if (mainData.getReleaseDate() != null && mainData.getReleaseDate().length() >= 4) {
+//            movie.setReleaseYear(Integer.parseInt(mainData.getReleaseDate().substring(0, 4)));
+//        }
+        // Tarih Kontrolü: Dizilerde first_air_date, Filmlerde release_date gelir
+        String date = mainData.getReleaseDate() != null ? mainData.getReleaseDate() : mainData.getFirstAirDate();
+        if (date != null && date.length() >= 4) {
+            movie.setReleaseYear(Integer.parseInt(date.substring(0, 4)));
         }
 
         // 4. Kategorileri eşleştir
@@ -127,7 +141,8 @@ public class TmdbService {
         // 5. Desteklenen her dil için çevirileri topla
         for (String langCode : supportedLanguages) {
             try {
-                String langUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId)
+                //String langUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/" + tmdbId)
+                String langUrl = UriComponentsBuilder.fromHttpUrl(baseUrl + typePath + tmdbId)
                         .queryParam("api_key", apiKey)
                         .queryParam("language", langCode)
                         .toUriString();
@@ -137,7 +152,12 @@ public class TmdbService {
                 if (langData != null) {
                     MovieTranslation translation = new MovieTranslation();
                     translation.setLanguageCode(langCode);
-                    translation.setTitle(langData.getTitle());
+
+                    // Dizi ise 'name', film ise 'title' kullan
+                    String title = langData.getTitle() != null ? langData.getTitle() : langData.getName();
+                    translation.setTitle(title);
+
+//                    translation.setTitle(langData.getTitle());
                     translation.setDescription(langData.getOverview());
                     translation.setMovie(movie);
                     movie.getTranslations().add(translation);
@@ -152,15 +172,16 @@ public class TmdbService {
     }
 
     @Transactional
-    public RestResponse<MovieResponse> importMovie(Long tmdbId, String currentLang) {
-        Movie savedMovie = importMovieEntity(tmdbId, currentLang);
+    public RestResponse<MovieResponse> importMovie(Long tmdbId, String contentType, String currentLang) {
+        Movie savedMovie = importMovieEntity(tmdbId, contentType, currentLang);
         return RestResponse.success(movieMapper.toResponse(savedMovie, currentLang),
                 messageHelper.getMessage("movie.import.success"));
     }
 
     public RestResponse<List<MovieResponse>> searchMovies(String query, String lang) {
         try {
-            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/search/movie")
+//            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/search/movie")
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/search/multi")
                     .queryParam("api_key", apiKey)
                     .queryParam("query", query)
                     .queryParam("language", lang)
@@ -174,9 +195,15 @@ public class TmdbService {
                 return success(List.of(), messageHelper.getMessage("tmdb.search.no.result"));
             }
 
-            // 3. TMDB DTO listesini MovieResponse listesine çevir
-            // Stream kullanarak her bir TmdbMovieDto'yu MovieResponse'a çeviriyoruz .//todo: stream
+//            // 3. TMDB DTO listesini MovieResponse listesine çevir
+//            // Stream kullanarak her bir TmdbMovieDto'yu MovieResponse'a çeviriyoruz .//todo: stream
+//            List<MovieResponse> searchResults = response.getResults().stream()
+//                    .map(dto -> movieMapper.toResponseFromTmdb(dto, lang))
+//                    .toList();
+
+            // FİLTRELEME: Sadece movie ve tv olanları al, person (oyuncu) olanları at.
             List<MovieResponse> searchResults = response.getResults().stream()
+                    .filter(dto -> "movie".equals(dto.getMediaType()) || "tv".equals(dto.getMediaType()))
                     .map(dto -> movieMapper.toResponseFromTmdb(dto, lang))
                     .toList();
 
@@ -188,7 +215,7 @@ public class TmdbService {
         }
     }
 
-    public RestResponse<Page<MovieResponse>> discoverMoviesFromTmdb(UUID genreId, String lang, int tmdbPage, Pageable pageable) {
+    public RestResponse<Page<MovieResponse>> discoverMoviesFromTmdb(String contentType, UUID genreId, String lang, int tmdbPage, Pageable pageable) {
         try {
             // Tür eşleşmesi için TMDB ID'sini bulalım
             Long tmdbGenreId = null;
@@ -198,7 +225,11 @@ public class TmdbService {
                         .orElse(null);
             }
 
-            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
+            // contentType "movie" veya "tv" gelmeli
+            String path = "/discover/" + (contentType.equalsIgnoreCase("TV") ? "tv" : "movie");
+
+            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl + path)
+//            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl + "/discover/movie")
                     .queryParam("api_key", apiKey)
                     .queryParam("language", lang)
                     .queryParam("sort_by", "popularity.desc")
@@ -240,7 +271,8 @@ public class TmdbService {
 
     public List<MovieResponse> getTrendingFromTmdb(String lang, int page) {
         try {
-            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/trending/movie/day")
+//            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/trending/movie/day")
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/trending/all/day")
                     .queryParam("api_key", apiKey)
                     .queryParam("language", lang)
                     .queryParam("page", page)
@@ -253,10 +285,37 @@ public class TmdbService {
             }
 
             return response.getResults().stream()
+                    .filter(dto -> "movie".equals(dto.getMediaType()) || "tv".equals(dto.getMediaType()))
                     .map(dto -> movieMapper.toResponseFromTmdb(dto, lang))
                     .toList();
         } catch (Exception e) {
             return List.of();
+        }
+    }
+
+    public RestResponse<List<MovieResponse>> searchAll(String query, String lang) {
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/search/multi") // multi-search endpoint
+                    .queryParam("api_key", apiKey)
+                    .queryParam("query", query)
+                    .queryParam("language", lang)
+                    .toUriString();
+
+            TmdbSearchResponse response = restTemplate.getForObject(url, TmdbSearchResponse.class);
+
+            if (response == null || response.getResults() == null) {
+                return success(List.of());
+            }
+
+            // Sadece film ve dizileri filtrele (kişileri/aktörleri şimdilik eleyebiliriz)
+            List<MovieResponse> searchResults = response.getResults().stream()
+                    .filter(dto -> "movie".equals(dto.getMediaType()) || "tv".equals(dto.getMediaType()))
+                    .map(dto -> movieMapper.toResponseFromTmdb(dto, lang))
+                    .toList();
+
+            return success(searchResults);
+        } catch (Exception e) {
+            throw new BusinessException("Arama sırasında bir hata oluştu");
         }
     }
 }

@@ -35,6 +35,8 @@ public class MovieResponse {
     private long dislikeCount;
     private Boolean userReaction; // null: tepki yok, true: liked, false: disliked
     private long commentCount;
+
+    private String contentType; // Frontend'e "MOVIE" mi "TV" mi olduğunu söyleyecek.
 }
 
 

@@ -31,9 +31,10 @@ public class MovieCollectionController {
     public RestResponse<Void> addMovie(
             @PathVariable UUID collectionId,
             @PathVariable Long tmdbId,
+            @RequestParam(required = false, defaultValue = "MOVIE") String contentType,
             @RequestParam(name = "lang", defaultValue = "en") String lang) {
         // TMDB ID kullanarak ekleme (Eğer yoksa otomatik import eder)
-        return movieCollectionService.addMovieToCollection(collectionId, tmdbId);
+        return movieCollectionService.addMovieToCollection(collectionId, tmdbId, contentType, lang);
     }
 
     @GetMapping("/{id}")

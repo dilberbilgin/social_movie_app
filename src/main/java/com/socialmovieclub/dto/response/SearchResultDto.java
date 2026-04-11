@@ -21,4 +21,5 @@ public class SearchResultDto {
 
     // Frontend'de tıklandığında detaylara gitmek için ek bilgi
     private Map<String, Object> metadata;
+  //  .metadata(Map.of("contentType", t.getContentType()))
 }

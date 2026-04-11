@@ -41,4 +41,6 @@ public class MovieCollection extends BaseEntity {
     public void removeMovie(Movie movie) {
         this.movies.remove(movie);
     }
+
+    private String contentType; // "MOVIE" veya "TV"
 }

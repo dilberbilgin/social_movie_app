@@ -178,12 +178,12 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
 // veya UUID üzerinden bulunamadığında TMDB kontrolü yapabiliriz.
 
     @Cacheable(value = "movieDetails", key = "{#id, #tmdbId, #lang}", unless = "#result == null")
-    public RestResponse<MovieResponse> getMovieDetail(UUID id, Long tmdbId, String lang) {
+    public RestResponse<MovieResponse> getMovieDetail(UUID id, Long tmdbId, String contentType, String lang) {
         Movie movie;
 
         // Önce TMDB ID kontrolü (Çünkü aramadan gelen filmlerde UUID henüz oluşmadı)
         if (tmdbId != null) {
-            movie = ensureMovieExists(tmdbId, lang);
+            movie = ensureMovieExists(tmdbId, contentType, lang);
 
             /*// Eğer kullanıcı giriş yapmamışsa veritabanına KAYDETME, sadece TMDB'den getirip göster
     if (securityService.getUserIfLoggedIn().isEmpty()) {
@@ -259,7 +259,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return success(responsePage);
     }
 
-    public RestResponse<Page<MovieResponse>> getDiscoverMovies(UUID genreId, String lang, Pageable pageable) {
+    public RestResponse<Page<MovieResponse>> getDiscoverMovies(String contentType, UUID genreId, String lang, Pageable pageable) {
         Specification<Movie> spec = Specification.where(null);
         if (genreId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.join("genres").get("id"), genreId));
@@ -276,7 +276,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             int tmdbPageToRequest = pageable.getPageNumber() - (totalLocalElements == 0 ? 0 : localPages) + 1;
 
             // TmdbService'e pageable nesnesini de gönderelim ki totalResults düzgün dönsün
-            return tmdbService.discoverMoviesFromTmdb(genreId, lang, tmdbPageToRequest, pageable);
+            return tmdbService.discoverMoviesFromTmdb(contentType, genreId, lang, tmdbPageToRequest, pageable);
         }
 
         Page<Movie> localMovies = movieRepository.findAll(spec, pageable);
@@ -309,8 +309,8 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
     }
 
     @Transactional
-    public Movie ensureMovieExists(Long tmdbId, String lang) {
+    public Movie ensureMovieExists(Long tmdbId, String contentType, String lang) {
         return movieRepository.findByTmdbId(tmdbId)
-                .orElseGet(() -> tmdbService.importMovieEntity(tmdbId, lang));
+                .orElseGet(() -> tmdbService.importMovieEntity(tmdbId, contentType, lang));
     }
 }

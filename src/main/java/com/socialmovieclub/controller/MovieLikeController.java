@@ -17,15 +17,17 @@ public class MovieLikeController {
     public RestResponse<UUID> likeMovie(
             @PathVariable UUID movieId,
             @RequestParam(required = false) Long tmdbId,
+            @RequestParam(required = false, defaultValue = "MOVIE") String contentType,
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-        return movieLikeService.handleMovieReaction(movieId, tmdbId, true, lang);
+        return movieLikeService.handleMovieReaction(movieId, tmdbId, true, contentType,  lang);
     }
 
     @PostMapping("/dislike")
     public RestResponse<UUID> dislikeMovie(
             @PathVariable UUID movieId,
             @RequestParam(required = false) Long tmdbId,
+            @RequestParam(required = false, defaultValue = "MOVIE") String contentType,
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-        return movieLikeService.handleMovieReaction(movieId, tmdbId, false, lang);
+        return movieLikeService.handleMovieReaction(movieId, tmdbId, false, contentType, lang);
     }
 }

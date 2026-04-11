@@ -23,8 +23,9 @@ public class RatingController {
     @PostMapping
     public RestResponse<RatingResponse> addOrUpdateRating(
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+            @RequestParam(required = false, defaultValue = "MOVIE") String contentType,
             @Valid @RequestBody RatingRequest request) {
-        return ratingService.rateMovie(request, lang);
+        return ratingService.rateMovie(request, contentType, lang);
     }
 
     // Giriş yapmış kullanıcının kendi puanlarını görmesi

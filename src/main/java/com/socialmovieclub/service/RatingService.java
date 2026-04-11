@@ -15,6 +15,7 @@ import com.socialmovieclub.repository.MovieRepository;
 import com.socialmovieclub.repository.RatingRepository;
 import com.socialmovieclub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,13 +41,15 @@ public class RatingService {
     private final MovieService movieService;
 
     @Transactional
-    public RestResponse<RatingResponse> rateMovie(RatingRequest request, String lang) {
+   // @CacheEvict(value = "movieDetails", allEntries = true)
+   @CacheEvict(value = "movieDetails", key = "{#request.movieId, #request.tmdbId, #lang}")
+    public RestResponse<RatingResponse> rateMovie(RatingRequest request, String contentType, String lang) {
         User user = securityService.getCurrentUser();
 
         Movie movie;
         if (request.getTmdbId() != null) {
             // Eğer TMDB ID varsa, filmin varlığını garanti et (yoksa kaydet)
-            movie = movieService.ensureMovieExists(request.getTmdbId(), lang);
+            movie = movieService.ensureMovieExists(request.getTmdbId(), contentType, lang);
         } else {
             // Sadece bizim DB'deki UUID ile ara
             movie = movieRepository.findById(request.getMovieId())

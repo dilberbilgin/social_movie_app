@@ -58,7 +58,7 @@ public class MovieCollectionService {
     }
 
     @Transactional
-    public RestResponse<Void> addMovieToCollection(UUID collectionId, Long tmdbId) {
+    public RestResponse<Void> addMovieToCollection(UUID collectionId, Long tmdbId, String contentType, String lang) {
         User user = securityService.getCurrentUser();
         MovieCollection collection = movieCollectionRepository.findById(collectionId)
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("collection.not.found")));
@@ -69,7 +69,7 @@ public class MovieCollectionService {
         }
 
         // 2. Film DB'de yoksa import et, varsa getir
-        Movie movie = movieService.ensureMovieExists(tmdbId, "en");
+        Movie movie = movieService.ensureMovieExists(tmdbId, contentType, lang);
 
         // 3. Mükerrer Kayıt Kontrolü (Business Rule)
         if (collection.getMovies().contains(movie)) {

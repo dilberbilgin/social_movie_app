@@ -28,8 +28,9 @@ public class TmdbController {
     @PostMapping("/import/{tmdbId}")
     public RestResponse<MovieResponse> importMovie(
             @PathVariable Long tmdbId,
+            @RequestParam(defaultValue = "MOVIE") String contentType,
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-        return tmdbService.importMovie(tmdbId, lang);
+        return tmdbService.importMovie(tmdbId, contentType, lang);
     }
 
     @GetMapping("/search")

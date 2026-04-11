@@ -27,4 +27,7 @@ public class MovieCreateRequest {
     private List<TranslationRequest> translations;
 
     private List<UUID> genreIds;
+
+    @NotBlank(message = "{movie.contentType.required}")
+    private String contentType; // "MOVIE" veya "TV"
 }

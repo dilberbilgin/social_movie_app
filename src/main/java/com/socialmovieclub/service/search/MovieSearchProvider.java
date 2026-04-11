@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -49,7 +50,8 @@ public class MovieSearchProvider implements SearchProvider {
         if (results.size() < limit) {
             int remaining = limit - results.size();
             // Mevcut tmdbService.searchMovies metodunu çağırıyoruz
-            var tmdbData = tmdbService.searchMovies(query, lang).getData();
+         //   var tmdbData = tmdbService.searchMovies(query, lang).getData();
+            var tmdbData = tmdbService.searchAll(query, lang).getData();
 
             if (tmdbData != null) {
                 tmdbData.stream()
@@ -58,9 +60,12 @@ public class MovieSearchProvider implements SearchProvider {
                                 .id(String.valueOf(t.getTmdbId()))
                                 .title(t.getTitle())
                                 .description(StringUtil.truncate(t.getDescription(), 100))
-                                .subTitle(t.getReleaseYear() + " TMDB • Movie")
+//                                .subTitle(t.getReleaseYear() + " TMDB • Movie")
+                                .subTitle(t.getReleaseYear() + " TMDB • " + (t.getContentType().equalsIgnoreCase("TV") ? "Series" : "Movie"))
                                 .imageUrl(t.getPosterUrl())
-                                .type(getType())
+//                                .type(getType())
+                                .type(getType()) // GlobalSearchResponse'da "MOVIE" (veya dilersen CONTENT) altında toplanır
+                                .metadata(Map.of("contentType", t.getContentType(), "isTmdb", true))
                                 .build()));
             }
         }
