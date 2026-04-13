@@ -1,8 +1,12 @@
 package com.socialmovieclub.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.response.MovieResponse;
+import com.socialmovieclub.dto.response.MovieWatchProvidersResponse;
+import com.socialmovieclub.dto.response.WatchProviderDto;
 import com.socialmovieclub.dto.tmdb.TmdbGenreDto;
 import com.socialmovieclub.dto.tmdb.TmdbGenreResponse;
 import com.socialmovieclub.dto.tmdb.TmdbMovieDto;
@@ -37,6 +41,7 @@ public class TmdbService {
     private final MessageHelper messageHelper;
     private final MovieRepository movieRepository;
     private final MovieMapper movieMapper;
+    private final ObjectMapper objectMapper;
 
     private final List<String> supportedLanguages = List.of("tr", "en");
 
@@ -317,6 +322,36 @@ public class TmdbService {
         } catch (Exception e) {
             throw new BusinessException("Arama sırasında bir hata oluştu");
         }
+    }
+
+    public MovieWatchProvidersResponse getWatchProviders(Long tmdbId, String contentType, String region) {
+        String typePath = "TV".equalsIgnoreCase(contentType) ? "/tv/" : "/movie/";
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + typePath + tmdbId + "/watch/providers")
+                .queryParam("api_key", apiKey)
+                .toUriString();
+
+        try {
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            Map<String, Object> results = (Map<String, Object>) response.get("results");
+            Map<String, Object> regionData = (Map<String, Object>) results.get(region.toUpperCase());
+
+            if (regionData == null) return new MovieWatchProvidersResponse();
+
+            MovieWatchProvidersResponse providerResponse = new MovieWatchProvidersResponse();
+            providerResponse.setFlatrate(parseProviders(regionData.get("flatrate")));
+            providerResponse.setRent(parseProviders(regionData.get("rent")));
+            providerResponse.setBuy(parseProviders(regionData.get("buy")));
+
+            return providerResponse;
+        } catch (Exception e) {
+            return new MovieWatchProvidersResponse();
+        }
+    }
+
+    private List<WatchProviderDto> parseProviders(Object data) {
+        if (data == null) return new ArrayList<>();
+        // Jackson ile Map'i List<WatchProviderDto>'ya çevirme mantığı
+        return objectMapper.convertValue(data, new TypeReference<List<WatchProviderDto>>() {});
     }
 }
 

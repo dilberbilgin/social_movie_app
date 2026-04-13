@@ -3,6 +3,7 @@ package com.socialmovieclub.mapper;
 import com.socialmovieclub.dto.request.MovieCreateRequest;
 import com.socialmovieclub.dto.request.TranslationRequest;
 import com.socialmovieclub.dto.response.MovieResponse;
+import com.socialmovieclub.dto.response.WatchProviderDto;
 import com.socialmovieclub.dto.tmdb.TmdbMovieDto;
 import com.socialmovieclub.entity.Movie;
 import com.socialmovieclub.entity.MovieTranslation;
@@ -130,5 +131,30 @@ public interface MovieMapper {
         }
         // TMDB path'i ise (/p96dm... gibi) prefix ekle
         return "https://image.tmdb.org/t/p/w500" + (posterPath.startsWith("/") ? "" : "/") + posterPath;
+    }
+
+
+    @AfterMapping
+    default void enrichWatchProviderLogos(@MappingTarget MovieResponse response) {
+        if (response.getWatchProviders() == null) return;
+
+        // Tüm kategorilerdeki (flatrate, rent, buy) logoları güncelle
+        updateLogos(response.getWatchProviders().getFlatrate());
+        updateLogos(response.getWatchProviders().getRent());
+        updateLogos(response.getWatchProviders().getBuy());
+    }
+
+    private void updateLogos(List<WatchProviderDto> providers) {
+        if (providers == null) return;
+        providers.forEach(p -> {
+            if (p.getLogoPath() != null && !p.getLogoPath().startsWith("http")) {
+                p.setLogoPath("https://image.tmdb.org/t/p/original" + p.getLogoPath());
+            }
+        });
+    }
+
+    default String mapLogoUrl(String logoPath) {
+        if (logoPath == null) return null;
+        return "https://image.tmdb.org/t/p/original" + logoPath;
     }
 }

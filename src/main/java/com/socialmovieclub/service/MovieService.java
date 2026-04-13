@@ -40,6 +40,7 @@ public class MovieService {
     private final CommentRepository commentRepository;
     private final SecurityService securityService;
     private final TmdbService tmdbService;
+    private final WatchProviderService watchProviderService;
 
     @Transactional
     //Admin veya sistem tarafından manuel film eklemek için
@@ -177,7 +178,9 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
     // Sadece UUID değil, opsiyonel olarak tmdbId de alabiliriz
 // veya UUID üzerinden bulunamadığında TMDB kontrolü yapabiliriz.
 
-    @Cacheable(value = "movieDetails", key = "{#id, #tmdbId, #lang}", unless = "#result == null")
+    @Cacheable(value = "movieDetails",
+            key = "{#id, #tmdbId, T(com.socialmovieclub.core.context.UserContextHolder).getContext().getRegion(), #lang}",
+            unless = "#result == null")
     public RestResponse<MovieResponse> getMovieDetail(UUID id, Long tmdbId, String contentType, String lang) {
         Movie movie;
 
@@ -202,6 +205,9 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         }
 
         MovieResponse response = movieMapper.toResponse(movie, lang);
+
+        response.setWatchProviders(watchProviderService.getProviders(movie.getTmdbId(), movie.getContentType()));
+        movieMapper.enrichWatchProviderLogos(response);
         enrichMovieWithLikes(response);
 
         securityService.getUserIfLoggedIn().ifPresent(user -> {

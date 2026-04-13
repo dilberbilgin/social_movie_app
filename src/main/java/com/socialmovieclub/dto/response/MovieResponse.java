@@ -37,6 +37,8 @@ public class MovieResponse {
     private long commentCount;
 
     private String contentType; // Frontend'e "MOVIE" mi "TV" mi olduğunu söyleyecek.
+
+    private MovieWatchProvidersResponse watchProviders;
 }
 
 

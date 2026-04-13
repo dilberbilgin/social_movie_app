@@ -7,5 +7,8 @@ public class CacheConstants {
 
     // Redis Sorted Set Key for Weekly Ranking
     public static final String WEEKLY_COMMENT_RANKING = "rank:comments:weekly";
+
+    public static final String WATCH_PROVIDERS = "watchProviders";
+
     //TODO : İleride eklenecekler için: public static final String MOVIE_CACHE = "movies";
 }
