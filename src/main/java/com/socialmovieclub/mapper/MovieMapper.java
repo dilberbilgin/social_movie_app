@@ -47,27 +47,44 @@ public interface MovieMapper {
     // ÇOKLU DÖNÜŞÜM: MapStruct otomatik olarak yukarıdaki metodu kullanır
     List<MovieResponse> toResponseList(List<Movie> movies, @Context String languageCode);
 
-    // Her dönüşümden sonra bu metod çalışacak ve doğru dili seçecek
+//    // Her dönüşümden sonra bu metod çalışacak ve doğru dili seçecek
+//    @AfterMapping
+//    default void setLanguageFields(@MappingTarget MovieResponse response, Movie movie, @Context String languageCode) {
+//
+//        if (movie.getTranslations() == null || movie.getTranslations().isEmpty()) {
+//            return;
+//        }
+//
+//        // 1. ADIM: Kullanıcının istediği dili ara (Örn: "pt" - Portekizce)
+//        MovieTranslation translation = movie.getTranslations().stream()
+//                .filter(t -> t.getLanguageCode().equalsIgnoreCase(languageCode))
+//                .findFirst()
+//                // 2. ADIM: Bulamazsan varsayılan dili ("en") ara
+//                .orElseGet(() -> movie.getTranslations().stream()
+//                        .filter(t -> t.getLanguageCode().equalsIgnoreCase("en"))
+//                        .findFirst()
+//                        // 3. ADIM: O da yoksa listenin en başındaki ilk çeviriyi getir (Hiç yoktan iyidir)
+//                        .orElse(movie.getTranslations().iterator().next())
+//                );
+//
+//        // Seçilen (veya fallback edilen) veriyi set et
+//        response.setTitle(translation.getTitle());
+//        response.setDescription(translation.getDescription());
+//    }
+
     @AfterMapping
     default void setLanguageFields(@MappingTarget MovieResponse response, Movie movie, @Context String languageCode) {
+        if (movie.getTranslations() == null || movie.getTranslations().isEmpty()) return;
 
-        if (movie.getTranslations() == null || movie.getTranslations().isEmpty()) {
-            return;
-        }
-
-        // 1. ADIM: Kullanıcının istediği dili ara (Örn: "pt" - Portekizce)
+        // 1. Kullanıcının seçtiği dili ara (de, tr, pt...)
+        // 2. Bulamazsan İngilizce'ye bak.
+        // 3. O da yoksa eldeki ilk çeviriyi ver.
         MovieTranslation translation = movie.getTranslations().stream()
                 .filter(t -> t.getLanguageCode().equalsIgnoreCase(languageCode))
                 .findFirst()
-                // 2. ADIM: Bulamazsan varsayılan dili ("en") ara
-                .orElseGet(() -> movie.getTranslations().stream()
-                        .filter(t -> t.getLanguageCode().equalsIgnoreCase("en"))
-                        .findFirst()
-                        // 3. ADIM: O da yoksa listenin en başındaki ilk çeviriyi getir (Hiç yoktan iyidir)
-                        .orElse(movie.getTranslations().iterator().next())
-                );
+                .or(() -> movie.getTranslations().stream().filter(t -> t.getLanguageCode().equalsIgnoreCase("en")).findFirst())
+                .orElse(movie.getTranslations().iterator().next());
 
-        // Seçilen (veya fallback edilen) veriyi set et
         response.setTitle(translation.getTitle());
         response.setDescription(translation.getDescription());
     }
@@ -153,8 +170,14 @@ public interface MovieMapper {
         });
     }
 
+//    default String mapLogoUrl(String logoPath) {
+//        if (logoPath == null) return null;
+//        return "https://image.tmdb.org/t/p/original" + logoPath;
+//    }
+
+    @Named("logoUrlMapper")
     default String mapLogoUrl(String logoPath) {
-        if (logoPath == null) return null;
-        return "https://image.tmdb.org/t/p/original" + logoPath;
+        if (logoPath == null || logoPath.isEmpty()) return null;
+        return "https://image.tmdb.org/t/p/original" + (logoPath.startsWith("/") ? "" : "/") + logoPath;
     }
 }

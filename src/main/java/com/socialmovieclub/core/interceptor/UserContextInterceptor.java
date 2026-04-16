@@ -15,17 +15,29 @@ public class UserContextInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        // 1. Manuel seçim (Frontend X-Region)
         String region = request.getHeader("X-Region"); // Frontend manuel gönderebilir
 
-        // Eğer Header yoksa Cloudflare gibi servislerden veya Accept-Language'den çıkarım yap
+        // 2. Altyapı bilgisi (Cloudflare/Nginx) - Canlı ortamda en güvenilir IP verisi
         if (region == null || region.isEmpty()) {
-            // Örn: PT, TR vb. (Basit mantık: Locale'den çekiyoruz)
+            region = request.getHeader("CF-IPCountry");
+        }
+
+        // 2. Eğer yoksa Cloudflare/Nginx header'ına bak (Canlı ortam için)
+        if (region == null || region.isEmpty()) {
+            region = request.getHeader("CF-IPCountry"); // Cloudflare standardı
+        }
+
+        // 3. Tarayıcı Locale bilgisi (Accept-Language içinden çekilen ülke)
+        if (region == null || region.isEmpty()) {
             region = request.getLocale().getCountry();
         }
 
-        // Eğer hala boşsa (localhost vb.) varsayılan ata
+        // 3. O da yoksa IP tabanlı bir kütüphane kullan (Opsiyonel: MaxMind GeoIP kütüphanesi)
+
+        // 4. Fallback (Varsayılan)
         if (region == null || region.isEmpty()) {
-            region = "PT";
+            region = "TR";
         }
 
         UserContext context = new UserContext();

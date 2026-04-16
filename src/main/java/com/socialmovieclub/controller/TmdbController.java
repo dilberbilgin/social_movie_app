@@ -39,4 +39,6 @@ public class TmdbController {
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
         return tmdbService.searchMovies(query, lang);
     }
+
+
 }

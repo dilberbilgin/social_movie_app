@@ -44,11 +44,25 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
         return movieService.getTopRatedMovies(lang);
     }
 
-    // En çok oylananlar (Trendler)
+//    // En çok oylananlar (Trendler)
+//    @GetMapping("/trending")
+//    public RestResponse<List<MovieResponse>> getTrending(
+//            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
+//        return movieService.getTrendingMovies(lang);
+//    }
+
     @GetMapping("/trending")
     public RestResponse<List<MovieResponse>> getTrending(
-            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang) {
-        return movieService.getTrendingMovies(lang);
+            @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
+            @RequestHeader(name = "X-Region", required = false) String region) { // Bölge bilgisini alıyoruz
+
+// 1. Eğer X-Region header'ı varsa (TR, PT vs.) TMDB'den çek
+        if (region != null && !region.isBlank()) {
+            return movieService.getTrendingMovies(lang, region);
+        }
+
+        // 2. Eğer X-Region YOKSA (null ise) Social Movie Club veritabanından çek
+        return movieService.getTrendingMovies(lang); // Tek parametreli olan metod
     }
 
 //    @GetMapping("/{id}")

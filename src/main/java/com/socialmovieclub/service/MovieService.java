@@ -110,6 +110,18 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return success(responseData, messageHelper.getMessage("common.success"));
     }
 
+    @Cacheable(value = "regionTrending", key = "{#lang, #region}")
+    public RestResponse<List<MovieResponse>> getTrendingMovies(String lang, String region) {
+        System.out.println("--- TREND TEST ---");
+        System.out.println("Gelen Region: " + region);
+        System.out.println("Gelen Lang: " + lang);
+
+        // TmdbService'deki yeni yazdığın metodu çağırıyoruz
+        List<MovieResponse> trending = tmdbService.getPopularByRegion(lang, region, 1);
+        return success(trending);
+    }
+
+
     public RestResponse<MovieResponse> getMovieById(UUID id, String lang) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(messageHelper.getMessage("movie.not.found")));
