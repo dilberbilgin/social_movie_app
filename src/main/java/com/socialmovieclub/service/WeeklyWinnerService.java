@@ -9,6 +9,8 @@ import com.socialmovieclub.entity.WeeklyWinner;
 import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.mapper.WeeklyWinnerMapper;
 import com.socialmovieclub.repository.CommentRepository;
+import com.socialmovieclub.repository.MovieLikeRepository;
+import com.socialmovieclub.repository.MovieRepository;
 import com.socialmovieclub.repository.WeeklyWinnerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +37,9 @@ public class WeeklyWinnerService {
     private final CommentRepository commentRepository;
     private final WeeklyWinnerRepository winnerRepository;
     private final WeeklyWinnerMapper weeklyWinnerMapper;
-
+    private final MovieLikeRepository movieLikeRepository;
+    private final SecurityService securityService;
+    private final MovieService movieService;
     /**
      * Her Pazar gecesi 23:59'da çalışarak haftanın en çok beğeni alan yorumunu belirler.
      * Aynı yazarın üst üste iki hafta kazanmasını engelleyen mantığı içerir.
@@ -115,22 +119,33 @@ public class WeeklyWinnerService {
     /**
      * Frontend için son kazananı DTO olarak döner.
      */
+//    @Transactional(readOnly = true)
+//    public RestResponse<WeeklyWinnerResponse> getLastWinner() {
+//        return winnerRepository.findTopByOrderByWeekEndDateDesc()
+//                .map(weeklyWinnerMapper::toResponse)
+//                .map(RestResponse::success)
+//                .orElseThrow(() -> new BusinessException("No winner record found."));
+//    }
     @Transactional(readOnly = true)
     public RestResponse<WeeklyWinnerResponse> getLastWinner() {
-        return winnerRepository.findTopByOrderByWeekEndDateDesc()
+        WeeklyWinnerResponse response = winnerRepository.findTopByOrderByWeekEndDateDesc()
                 .map(weeklyWinnerMapper::toResponse)
-                .map(RestResponse::success)
                 .orElseThrow(() -> new BusinessException("No winner record found."));
+
+        // Mapper'ın ignore ettiği alanları burada dolduruyoruz
+        movieService.enrichWeeklyWinner(response);
+
+        return RestResponse.success(response);
     }
 
     @Transactional(readOnly = true)
     public RestResponse<List<WeeklyWinnerResponse>> getLatestWinners(int limit) {
-        // Son belirlenen kazananlardan 'limit' kadarını getir (Örn: Son 4 kazanan)
         PageRequest pageRequest = PageRequest.of(0, limit, Sort.by("weekEndDate").descending());
         Page<WeeklyWinner> winners = winnerRepository.findAll(pageRequest);
 
         List<WeeklyWinnerResponse> response = winners.getContent().stream()
                 .map(weeklyWinnerMapper::toResponse)
+                .peek(movieService::enrichWeeklyWinner) // Her bir DTO'yu zenginleştir
                 .toList();
 
         return RestResponse.success(response);
@@ -157,49 +172,112 @@ public class WeeklyWinnerService {
         List<WeeklyWinnerResponse> trending = topCommentIds.stream()
                 .map(id -> commentRepository.findById(UUID.fromString(id)).orElse(null))
                 .filter(java.util.Objects::nonNull)
-                .map(comment -> {
-                    Double score = redisTemplate.opsForZSet().score(rankKey, comment.getId().toString());
-                    return WeeklyWinnerResponse.builder()
-                            .commentId(comment.getId())
-                            // Yorumu burada kesiyoruz ki frontend'de grid bozulmasın (Örn: 100 karakter)
-                            .commentContent(StringUtil.truncate(comment.getContent(), 100))
-                            .username(comment.getUser().getUsername())
-                            .profilePictureUrl(comment.getUser().getProfilePictureUrl())
-                            .movieTitle(comment.getMovie().getOriginalTitle())
-                            .moviePosterUrl(comment.getMovie().getPosterUrl())
-                            .finalLikeCount(score != null ? score.longValue() : 0L)
-                            .weekEndDate(LocalDate.now())
-                            .movieId(comment.getMovie().getId()) // Movie UUID
-                            .tmdbId(comment.getMovie().getTmdbId()) // TMDB ID
-                            .build();
 //                .map(comment -> {
 //                    Double score = redisTemplate.opsForZSet().score(rankKey, comment.getId().toString());
-//                    // Burada WeeklyWinner entity'si yok, manuel veya özel bir mapper ile DTO oluşturuyoruz
-//                    return WeeklyWinnerResponse.builder()
+//                    // Film verilerini yerel DB'den taze çek (SMC puanı için)
+//                    var movie = comment.getMovie();
+//
+//               WeeklyWinnerResponse response = WeeklyWinnerResponse.builder()
 //                            .commentId(comment.getId())
-//                            .commentContent(comment.getContent())
+//                            // Yorumu burada kesiyoruz ki frontend'de grid bozulmasın (Örn: 100 karakter)
+//                            .commentContent(StringUtil.truncate(comment.getContent(), 100))
 //                            .username(comment.getUser().getUsername())
 //                            .profilePictureUrl(comment.getUser().getProfilePictureUrl())
 //                            .movieTitle(comment.getMovie().getOriginalTitle())
 //                            .moviePosterUrl(comment.getMovie().getPosterUrl())
 //                            .finalLikeCount(score != null ? score.longValue() : 0L)
-//                            .weekEndDate(LocalDate.now()) // Mevcut hafta
-//                            .build();
+//                            .weekEndDate(LocalDate.now())
+//                            .movieId(comment.getMovie().getId()) // Movie UUID
+//                            .tmdbId(comment.getMovie().getTmdbId()) // TMDB ID
+//
+//                            .clubRating(movie != null ? movie.getClubRating() : 0.0)
+//                            .clubVoteCount(movie != null ? movie.getClubVoteCount() : 0)
+//                      // .movieLikeCount(movieLikeRepository.countByMovieIdAndIsLikedTrue(movie.getId()))
+//                    //   .movieDislikeCount(movieLikeRepository.countByMovieIdAndIsLikedFalse(movie.getId()))
+//                       .build();
+//
+//
+////                .map(comment -> {
+////                    Double score = redisTemplate.opsForZSet().score(rankKey, comment.getId().toString());
+////                    // Burada WeeklyWinner entity'si yok, manuel veya özel bir mapper ile DTO oluşturuyoruz
+////                    return WeeklyWinnerResponse.builder()
+////                            .commentId(comment.getId())
+////                            .commentContent(comment.getContent())
+////                            .username(comment.getUser().getUsername())
+////                            .profilePictureUrl(comment.getUser().getProfilePictureUrl())
+////                            .movieTitle(comment.getMovie().getOriginalTitle())
+////                            .moviePosterUrl(comment.getMovie().getPosterUrl())
+////                            .finalLikeCount(score != null ? score.longValue() : 0L)
+////                            .weekEndDate(LocalDate.now()) // Mevcut hafta
+////                            .build();
+//
+//                    securityService.getUserIfLoggedIn().ifPresent(user -> {
+//                        movieLikeRepository.findByUserIdAndMovieId(user.getId(), movie.getId())
+//                                .ifPresent(like -> response.setUserReaction(like.isLiked()));
+//
+//
+//
+////            movieRepository.findById(dto.getId()).ifPresent(movie -> {
+////                dto.setClubRating(movie.getClubRating());
+////                dto.setClubVoteCount(movie.getClubVoteCount());
+////            });
+//                    });
+//                    return response; // DÜZELTME 4: Oluşturulan ve içi dolan objeyi dönüyoruz
+//                })
+                .map(comment -> {
+                    Double score = redisTemplate.opsForZSet().score(rankKey, comment.getId().toString());
+                    var movie = comment.getMovie();
+
+                    WeeklyWinnerResponse response = WeeklyWinnerResponse.builder()
+                            .commentId(comment.getId())
+                            .commentContent(StringUtil.truncate(comment.getContent(), 100))
+                            .username(comment.getUser().getUsername())
+                            .profilePictureUrl(comment.getUser().getProfilePictureUrl())
+                            .movieTitle(movie.getOriginalTitle())
+                            .moviePosterUrl(movie.getPosterUrl())
+                            .finalLikeCount(score != null ? score.longValue() : 0L)
+                            .weekStartDate(LocalDate.now().minusDays(6))
+                            .weekEndDate(LocalDate.now())
+                            .movieId(movie.getId())
+                            .tmdbId(movie.getTmdbId())
+                            .clubRating(movie.getClubRating())
+                            .clubVoteCount(movie.getClubVoteCount())
+                            .build();
+
+                    // İşte SOLID burada devreye giriyor:
+                    movieService.enrichWeeklyWinner(response);
+
+                    return response;
                 })
                 .toList();
 
+
         return RestResponse.success(trending);
     }
+
 
     @Transactional(readOnly = true)
     public RestResponse<Page<WeeklyWinnerResponse>> getAllWinners(Pageable pageable) {
         Page<WeeklyWinner> winners = winnerRepository.findAllByOrderByWeekEndDateDesc(pageable);
 
-        // MapStruct listeleri otomatik mapleyebilir (Mapper'a List<WeeklyWinnerResponse> metodunu eklemelisin)
-        Page<WeeklyWinnerResponse> response = winners.map(weeklyWinnerMapper::toResponse);
+        // Page nesnesi üzerinde map kullanarak zenginleştirme
+        Page<WeeklyWinnerResponse> response = winners.map(winner -> {
+            WeeklyWinnerResponse dto = weeklyWinnerMapper.toResponse(winner);
+            movieService.enrichWeeklyWinner(dto);
+            return dto;
+        });
 
         return RestResponse.success(response);
     }
+//    @Transactional(readOnly = true)
+//    public RestResponse<Page<WeeklyWinnerResponse>> getAllWinners(Pageable pageable) {
+//        Page<WeeklyWinner> winners = winnerRepository.findAllByOrderByWeekEndDateDesc(pageable);
+//
+//        // MapStruct listeleri otomatik mapleyebilir (Mapper'a List<WeeklyWinnerResponse> metodunu eklemelisin)
+//        Page<WeeklyWinnerResponse> response = winners.map(weeklyWinnerMapper::toResponse);
+//
+//        return RestResponse.success(response);
+//    }
 
 
 }

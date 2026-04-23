@@ -51,6 +51,7 @@ public class UserContextInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-        UserContextHolder.clear(); // Bellek sızıntısını önlemek için temizle (CRITICAL)
+        UserContextHolder.clear(); // Bellek sızıntısını önlemek için temizle
+        //İnterceptor'larda ThreadLocal kullanırken bu temizliği yapmazsan, özellikle yoğun trafik altında sunucu bir süre sonra şişebilir.
     }
 }

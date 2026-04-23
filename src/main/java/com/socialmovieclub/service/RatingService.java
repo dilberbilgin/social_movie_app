@@ -42,7 +42,8 @@ public class RatingService {
 
     @Transactional
    // @CacheEvict(value = "movieDetails", allEntries = true)
-   @CacheEvict(value = "movieDetails", key = "{#request.movieId, #request.tmdbId, #lang}")
+//   @CacheEvict(value = "movieDetails", key = "{#request.movieId, #request.tmdbId, #lang}")
+    @CacheEvict(value = {"trendingMovies", "topRatedMovies", "regionTrending", "movieDetails"}, allEntries = true)
     public RestResponse<RatingResponse> rateMovie(RatingRequest request, String contentType, String lang) {
         User user = securityService.getCurrentUser();
 

@@ -13,7 +13,7 @@ public class LocaleConfig {
     @Bean
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
-        // Varsayılan dili buradan istediğin an değiştirebilirsin
+        // Varsayılan dili buradan istediğimiz an değiştirebiliriz
         localeResolver.setDefaultLocale(Locale.ENGLISH);
         return localeResolver;
     }

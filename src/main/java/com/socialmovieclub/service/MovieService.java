@@ -4,6 +4,7 @@ import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.request.MovieCreateRequest;
 import com.socialmovieclub.dto.response.MovieResponse;
+import com.socialmovieclub.dto.response.WeeklyWinnerResponse;
 import com.socialmovieclub.entity.Genre;
 import com.socialmovieclub.entity.Movie;
 import com.socialmovieclub.entity.User;
@@ -118,6 +119,16 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
 
         // TmdbService'deki yeni yazdığın metodu çağırıyoruz
         List<MovieResponse> trending = tmdbService.getPopularByRegion(lang, region, 1);
+
+        // 2. Her bir film için yerel veritabanımızdaki etkileşimleri ekle
+        trending.forEach(dto -> {
+            movieRepository.findByTmdbId(dto.getTmdbId()).ifPresent(movie -> {
+                dto.setId(movie.getId());
+                dto.setClubRating(movie.getClubRating());
+            });
+            // Her durumda çağır (Eğer DB'de yoksa metodun zaten 0 set ediyor)
+            enrichMovieWithLikes(dto);
+        });
         return success(trending);
     }
 
@@ -236,6 +247,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             dto.setLikeCount(0L);
             dto.setDislikeCount(0L);
             dto.setCommentCount(0L);
+//            dto.setClubRating(0.0);
             return;
         }
 
@@ -246,6 +258,30 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         securityService.getUserIfLoggedIn().ifPresent(user -> {
             movieLikeRepository.findByUserIdAndMovieId(user.getId(), dto.getId())
                     .ifPresent(like -> dto.setUserReaction(like.isLiked()));
+
+//            movieRepository.findById(dto.getId()).ifPresent(movie -> {
+//                dto.setClubRating(movie.getClubRating());
+//                dto.setClubVoteCount(movie.getClubVoteCount());
+//            });
+        });
+    }
+
+//overloading for weeklywinnerservice
+    public void enrichWeeklyWinner(WeeklyWinnerResponse response) {
+        if (response.getMovieId() == null) return;
+
+        // Like ve Dislike sayılarını çek
+        long likes = movieLikeRepository.countByMovieIdAndIsLikedTrue(response.getMovieId());
+        long dislikes = movieLikeRepository.countByMovieIdAndIsLikedFalse(response.getMovieId());
+
+        // Response alanlarını doldur
+        response.setMovieLikeCount(likes);
+        response.setMovieDislikeCount(dislikes);
+
+        // Giriş yapan kullanıcının tepkisini ekle
+        securityService.getUserIfLoggedIn().ifPresent(user -> {
+            movieLikeRepository.findByUserIdAndMovieId(user.getId(), response.getMovieId())
+                    .ifPresent(like -> response.setUserReaction(like.isLiked()));
         });
     }
 
