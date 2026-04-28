@@ -3,6 +3,7 @@ package com.socialmovieclub.service;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
 import com.socialmovieclub.dto.request.MovieCreateRequest;
+import com.socialmovieclub.dto.response.CustomPageResponse;
 import com.socialmovieclub.dto.response.MovieResponse;
 import com.socialmovieclub.dto.response.WeeklyWinnerResponse;
 import com.socialmovieclub.entity.Genre;
@@ -23,10 +24,8 @@ import org.springframework.stereotype.Service;
 
 import static com.socialmovieclub.core.result.RestResponse.success;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -81,7 +80,8 @@ public class MovieService {
         return success(responseData, successMsg);
     }
 
-public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable pageable) {
+//public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable pageable) {
+public RestResponse<CustomPageResponse<MovieResponse>> getAllMovies(String lang, Pageable pageable) {
     // 1. Veritabanından sayfalı çek
     Page<Movie> moviePage = movieRepository.findAll(pageable);
 
@@ -92,15 +92,17 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return dto;
     });
 
-    return success(responsePage);
+//    return success(responsePage);
+    return success(CustomPageResponse.of(responsePage));
 }
-    @Cacheable(value = "trendingMovies", key = "#lang")
+    @Cacheable(value = "topRatedMovies", key = "#lang")
     public RestResponse<List<MovieResponse>> getTopRatedMovies(String lang) {
         List<Movie> movies = movieRepository.findTop10ByOrderByClubRatingDesc();
         List<MovieResponse> responseData = movieMapper.toResponseList(movies, lang);
         enrichMovieListWithLikes(responseData);
         return success(responseData, messageHelper.getMessage("common.success"));
     }
+
 
     @Cacheable(value = "trendingMovies", key = "#lang")
     public RestResponse<List<MovieResponse>> getTrendingMovies(String lang) {
@@ -111,26 +113,57 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return success(responseData, messageHelper.getMessage("common.success"));
     }
 
-    @Cacheable(value = "regionTrending", key = "{#lang, #region}")
     public RestResponse<List<MovieResponse>> getTrendingMovies(String lang, String region) {
-        System.out.println("--- TREND TEST ---");
-        System.out.println("Gelen Region: " + region);
-        System.out.println("Gelen Lang: " + lang);
+        // 1. TMDB'den ham veriyi çek (Bu metod zaten kendi içinde cache'li)
+        List<MovieResponse> tmdbData = tmdbService.getPopularByRegion(lang, region, 1);
 
-        // TmdbService'deki yeni yazdığın metodu çağırıyoruz
-        List<MovieResponse> trending = tmdbService.getPopularByRegion(lang, region, 1);
+        // 2. Veriyi zenginleştirirken yeni bir liste oluştur
+        List<MovieResponse> enrichedList = tmdbData.stream()
+                .map(dto -> {
+                    // Local DB'de var mı kontrol et
+                    movieRepository.findByTmdbId(dto.getTmdbId()).ifPresent(movie -> {
+                        dto.setId(movie.getId()); // UUID'yi set et
+                        dto.setClubRating(movie.getClubRating());
+                    });
 
-        // 2. Her bir film için yerel veritabanımızdaki etkileşimleri ekle
-        trending.forEach(dto -> {
-            movieRepository.findByTmdbId(dto.getTmdbId()).ifPresent(movie -> {
-                dto.setId(movie.getId());
-                dto.setClubRating(movie.getClubRating());
-            });
-            // Her durumda çağır (Eğer DB'de yoksa metodun zaten 0 set ediyor)
-            enrichMovieWithLikes(dto);
-        });
-        return success(trending);
+                    // Beğeni ve yorum sayılarını ekle (Metodun içindeki null kontrolü sayesinde hata vermez)
+                    enrichMovieWithLikes(dto);
+                    return dto;
+                })
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        return success(enrichedList);
     }
+
+//    @Cacheable(value = "regionTrending", key = "{#lang, #region}")
+//    public RestResponse<List<MovieResponse>> getTrendingMovies(String lang, String region) {
+//
+//        // TmdbService'deki yeni yazdığın metodu çağırıyoruz
+//        List<MovieResponse> trending = tmdbService.getPopularByRegion(lang, region, 1);
+//
+//        //Listeyi manipüle etmeden önce kopyasını aliyoruz(Cache'i bozmamak için)
+//        List<MovieResponse> enrichedList = new ArrayList<>(trending);
+//
+//        //  Her film için DB kontrolü ve Beğeni/Yorum eklemesi
+//        enrichedList.forEach(dto -> {
+//            movieRepository.findByTmdbId(dto.getTmdbId()).ifPresent(movie -> {
+//                dto.setId(movie.getId()); // Local UUID'yi ata
+//                dto.setClubRating(movie.getClubRating());
+//            });
+//            enrichMovieWithLikes(dto); // Metodun zaten giriş yapmayan kullanıcıyı yönetiyor
+//        });
+//
+////        // 2. Her bir film için yerel veritabanımızdaki etkileşimleri ekle
+////        trending.forEach(dto -> {
+////            movieRepository.findByTmdbId(dto.getTmdbId()).ifPresent(movie -> {
+////                dto.setId(movie.getId());
+////                dto.setClubRating(movie.getClubRating());
+////            });
+////            // Her durumda çağır (Eğer DB'de yoksa metodun zaten 0 set ediyor)
+////            enrichMovieWithLikes(dto);
+////        });
+//        return success(trending);
+//    }
 
 
     public RestResponse<MovieResponse> getMovieById(UUID id, String lang) {
@@ -152,7 +185,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         return success(response);
     }
 
-    public RestResponse<Page<MovieResponse>> getSuggestedMovies(String lang, Pageable pageable) {
+    public RestResponse<CustomPageResponse<MovieResponse>> getSuggestedMovies(String lang, Pageable pageable) {
         Optional<User> currentUser = securityService.getUserIfLoggedIn();
 
         // 1. Giriş yapılmadıysa: Tüm filmleri dön
@@ -194,8 +227,10 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             return dto;
         }).toList();
 
-        return success(new PageImpl<>(responseContent, pageable,
-                Math.max(suggestedPage.getTotalElements(), responseContent.size())));
+        Page<MovieResponse> finalPage = new PageImpl<>(responseContent, pageable,
+                Math.max(suggestedPage.getTotalElements(), responseContent.size()));
+
+        return success(CustomPageResponse.of(finalPage));
     }
 
     // Sadece UUID değil, opsiyonel olarak tmdbId de alabiliriz
@@ -210,6 +245,10 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         // Önce TMDB ID kontrolü (Çünkü aramadan gelen filmlerde UUID henüz oluşmadı)
         if (tmdbId != null) {
             movie = ensureMovieExists(tmdbId, contentType, lang);
+            //Lazy Data Migration
+            //Bu sayede kullanıcı henüz senin veritabanında olmayan (sadece aramada gördüğü)
+            // bir filmi beğendiği anda, sistem o filmi otomatik olarak "arka planda"
+            // veritabanına kaydediyor.
 
             /*// Eğer kullanıcı giriş yapmamışsa veritabanına KAYDETME, sadece TMDB'den getirip göster
     if (securityService.getUserIfLoggedIn().isEmpty()) {
@@ -289,7 +328,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
         dtos.forEach(this::enrichMovieWithLikes);
     }
 
-    public RestResponse<Page<MovieResponse>> searchMovies(String title, UUID genreId, String lang, Pageable pageable) {
+    public RestResponse<CustomPageResponse<MovieResponse>> searchMovies(String title, UUID genreId, String lang, Pageable pageable) {
         Specification<Movie> spec = Specification.where(null);
 
         if (title != null && !title.isEmpty()) {
@@ -310,10 +349,10 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             return dto;
         });
 
-        return success(responsePage);
+        return success(CustomPageResponse.of(responsePage));
     }
 
-    public RestResponse<Page<MovieResponse>> getDiscoverMovies(String contentType, UUID genreId, String lang, Pageable pageable) {
+    public RestResponse<CustomPageResponse<MovieResponse>> getDiscoverMovies(String contentType, UUID genreId, String lang, Pageable pageable) {
         Specification<Movie> spec = Specification.where(null);
         if (genreId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.join("genres").get("id"), genreId));
@@ -343,9 +382,12 @@ public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable page
             return res;
         });
 
-        // Toplam sayıyı manuel çok yüksek veriyoruz ki frontend "daha var" desin
-        return success(new PageImpl<>(mappedPage.getContent(), pageable, totalLocalElements + 5000));
+        Page<MovieResponse> finalPage = new PageImpl<>(mappedPage.getContent(), pageable, totalLocalElements + 5000);
+        return success(CustomPageResponse.of(finalPage));
     }
+//        // Toplam sayıyı manuel çok yüksek veriyoruz ki frontend "daha var" desin
+//        return success(new PageImpl<>(mappedPage.getContent(), pageable, totalLocalElements + 5000));
+//    }
 
     @Transactional
     public Movie getOrCreateMovie(UUID movieId, String lang) {

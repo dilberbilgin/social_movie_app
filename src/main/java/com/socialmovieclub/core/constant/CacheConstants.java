@@ -10,5 +10,7 @@ public class CacheConstants {
 
     public static final String WATCH_PROVIDERS = "watchProviders";
 
+    public static final String TMDB_POPULAR = "tmdb_popular_region";
+
     //TODO : İleride eklenecekler için: public static final String MOVIE_CACHE = "movies";
 }

@@ -2,12 +2,11 @@ package com.socialmovieclub.controller;
 
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.dto.request.MovieCreateRequest;
+import com.socialmovieclub.dto.response.CustomPageResponse;
 import com.socialmovieclub.dto.response.MovieResponse;
-import com.socialmovieclub.exception.BusinessException;
 import com.socialmovieclub.service.MovieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +31,7 @@ public class MovieController {
     }
 
 @GetMapping
-public RestResponse<Page<MovieResponse>> getAllMovies(
+public RestResponse<CustomPageResponse<MovieResponse>> getAllMovies(
         @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
         Pageable pageable) { // Spring bunu otomatik çözer
     return movieService.getAllMovies(lang, pageable);
@@ -92,7 +91,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
     }
 
     @GetMapping("/search")
-    public RestResponse<Page<MovieResponse>> searchMovies(
+    public RestResponse<CustomPageResponse<MovieResponse>> searchMovies(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) UUID genreId,
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
@@ -102,7 +101,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
     }
 
     @GetMapping("/discover")
-    public RestResponse<Page<MovieResponse>> discover(
+    public RestResponse<CustomPageResponse<MovieResponse>> discover(
             @RequestParam(defaultValue = "MOVIE") String contentType,
             @RequestParam(required = false) UUID genreId,
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
@@ -111,7 +110,7 @@ public RestResponse<Page<MovieResponse>> getAllMovies(
     }
 
     @GetMapping("/suggestions")
-    public RestResponse<Page<MovieResponse>> getSuggestions(
+    public RestResponse<CustomPageResponse<MovieResponse>> getSuggestions(
             @RequestHeader(name = "Accept-Language", defaultValue = "en") String lang,
             Pageable pageable) {
         return movieService.getSuggestedMovies(lang, pageable);

@@ -1,14 +1,22 @@
 package com.socialmovieclub.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class MovieResponse {
+@JsonIgnoreProperties(ignoreUnknown = true) // Fazladan veri gelirse patlamasın
+public class MovieResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L; // Versiyon kontrolü için önerilir
+
     private UUID id;            // Bizim sistemdeki ID (Aramada null gelir)
     private Long tmdbId;        // TMDB'deki ID (Arama ve Import için
     private String originalTitle;

@@ -4,8 +4,10 @@ package com.socialmovieclub.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.socialmovieclub.core.constant.CacheConstants;
 import com.socialmovieclub.core.result.RestResponse;
 import com.socialmovieclub.core.utils.MessageHelper;
+import com.socialmovieclub.dto.response.CustomPageResponse;
 import com.socialmovieclub.dto.response.MovieResponse;
 import com.socialmovieclub.dto.response.MovieWatchProvidersResponse;
 import com.socialmovieclub.dto.response.WatchProviderDto;
@@ -20,7 +22,9 @@ import com.socialmovieclub.repository.GenreRepository;
 import com.socialmovieclub.repository.MovieRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -29,11 +33,13 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.socialmovieclub.core.result.RestResponse.success;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TmdbService {
 
     private final RestTemplate restTemplate;
@@ -124,6 +130,8 @@ public class TmdbService {
                     }
                 } catch (Exception e) {
                     System.err.println(langCode + " dili için çeviri hatası: " + e.getMessage());
+                    log.error("{} language translation failed for tmdbId: {} - Cause: {}", langCode, tmdbId, e.getMessage());
+
                 }
             }
             return movieRepository.save(movie);
@@ -178,7 +186,8 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
         }
     }
 
-    public RestResponse<Page<MovieResponse>> discoverMoviesFromTmdb(String contentType, UUID genreId, String lang, int tmdbPage, Pageable pageable) {
+    @Cacheable(value = "discoverMovies", key = "{#contentType, #genreId, #lang, #pageable.pageNumber}")
+    public RestResponse<CustomPageResponse<MovieResponse>> discoverMoviesFromTmdb(String contentType, UUID genreId, String lang, int tmdbPage, Pageable pageable) {
         try {
             Long tmdbGenreId = (genreId != null) ? genreRepository.findById(genreId).map(Genre::getTmdbId).orElse(null) : null;
             String path = "/discover/" + (contentType.equalsIgnoreCase("TV") ? "tv" : "movie");
@@ -192,7 +201,9 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
             if (tmdbGenreId != null) builder.queryParam("with_genres", tmdbGenreId);
 
             TmdbSearchResponse response = restTemplate.getForObject(builder.toUriString(), TmdbSearchResponse.class);
-            if (response == null || response.getResults() == null) return success(Page.empty());
+            if (response == null || response.getResults() == null)
+                return success(CustomPageResponse.of(Page.empty()));
+//                return success(Page.empty());
 
             List<MovieResponse> movies = response.getResults().stream()
                     .map(dto -> {
@@ -201,12 +212,21 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
                         return res;
                     }).toList();
 
-            return success(new PageImpl<>(movies, pageable, 5000));
+            // PageImpl'i CustomPageResponse'a çeviriyoruz
+            Page<MovieResponse> finalPage = new PageImpl<>(movies, pageable, 5000);
+            return success(CustomPageResponse.of(finalPage));
+
         } catch (Exception e) {
-            return success(Page.empty());
+            return success(CustomPageResponse.of(Page.empty()));
         }
+
+//            return success(new PageImpl<>(movies, pageable, 5000));
+//        } catch (Exception e) {
+//            return success(Page.empty());
+//        }
     }
 
+//    @Cacheable(value = "tmdb_trending", key = "{#lang, #page}")
     public List<MovieResponse> getTrendingFromTmdb(String lang, int page) {
         try {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/popular")
@@ -227,6 +247,7 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
         }
     }
 
+    @Cacheable(value = "tmdb_popular_region", key = "{#lang, #region, #page}")
     public List<MovieResponse> getPopularByRegion(String lang, String region, int page) {
         try {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/movie/popular")
@@ -244,19 +265,34 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
 //                    .filter(dto -> "movie".equals(dto.getMediaType()) || "tv".equals(dto.getMediaType()))
 //                    .map(dto -> movieMapper.toResponseFromTmdb(dto, lang))
 //                    .toList();
+//            return response.getResults().stream()
+//                    .map(dto -> {
+//                        MovieResponse res = movieMapper.toResponseFromTmdb(dto, lang);
+//                        res.setContentType("MOVIE"); // Popular endpoint'i film döner
+//                        return res;
+//                    })
+//                    .toList();
+//        } catch (Exception e) {
+//            return List.of();
+//        }
+            // .toList() yerine explicitly ArrayList'e çeviriyoruz
             return response.getResults().stream()
                     .map(dto -> {
                         MovieResponse res = movieMapper.toResponseFromTmdb(dto, lang);
-                        res.setContentType("MOVIE"); // Popular endpoint'i film döner
+                        res.setContentType("MOVIE");
                         return res;
                     })
-                    .toList();
+                    .collect(Collectors.toCollection(ArrayList::new)); // Redis için en güvenli yol
         } catch (Exception e) {
-            return List.of();
+            // Hatanın ne olduğunu logla ki "neden 401 aldım" diye kör kalma
+            //System.err.println("Cache/API Error: " + e.getMessage());
+            log.error("TMDB Popular Movies fetching failed for region: {} - Error: ", region, e);
+            return new ArrayList<>();
         }
     }
 
 
+    @Cacheable(value = "watch_providers", key = "{#tmdbId, #contentType, #region}")
     public MovieWatchProvidersResponse getWatchProviders(Long tmdbId, String contentType, String region) {
         try {
             Map<String, Object> response = tmdbClient.fetchWatchProviders(tmdbId, contentType);
