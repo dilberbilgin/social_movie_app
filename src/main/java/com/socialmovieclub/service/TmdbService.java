@@ -92,11 +92,97 @@ public class TmdbService {
         }
     }
 
+//    @Transactional
+//    public Movie importMovieEntity(Long tmdbId, String contentType, String currentLang) {
+//        // 1. Önce veritabanında var mı kontrol et
+//        Optional<Movie> existingMovieOpt = movieRepository.findByTmdbId(tmdbId);
+//
+//        Movie movie;
+//        boolean isNew = false;
+//
+//        // 2. Eğer film yoksa veya varsa bile yönetmen bilgisi eksikse TMDB'ye git
+//        if (existingMovieOpt.isEmpty() || existingMovieOpt.get().getDirector() == null) {
+//
+//            TmdbMovieDto mainData = tmdbClient.fetchMovieDetails(tmdbId, contentType, "en");
+//            if (mainData == null) {
+//                throw new BusinessException(messageHelper.getMessage("tmdb.movie.not.found"));
+//            }
+//
+////            if (existingMovieOpt.isEmpty()) {
+//            if (existingMovieOpt.isEmpty() ||
+//                    existingMovieOpt.get().getDirector() == null ||
+//                    existingMovieOpt.get().getDirector().isBlank()) {
+//                // Tamamen yeni bir film nesnesi yarat
+//                movie = new Movie();
+//                isNew = true;
+//                movie.setTmdbId(mainData.getId());
+//                movie.setContentType(contentType.toUpperCase());
+//            } else {
+//                // Mevcut filmi güncellemek için al
+//                movie = existingMovieOpt.get();
+//            }
+//
+//            // Ortak Alanları Set Et/Güncelle
+//            movie.setImdbId(mainData.getImdbId());
+//            movie.setOriginalTitle(mainData.getOriginalTitle() != null ? mainData.getOriginalTitle() : mainData.getOriginalName());
+//            movie.setTmdbRating(mainData.getVoteAverage());
+//            movie.setPosterUrl(mainData.getPosterPath());
+//
+//            // Yıl Bilgisi
+//            String date = mainData.getReleaseDate() != null ? mainData.getReleaseDate() : mainData.getFirstAirDate();
+//            if (date != null && date.length() >= 4) {
+//                movie.setReleaseYear(Integer.parseInt(date.substring(0, 4)));
+//            }
+//
+//            // Türleri Ekle (Sadece yeni filmse veya liste boşsa)
+//            if (movie.getGenres().isEmpty() && mainData.getGenres() != null) {
+//                mainData.getGenres().stream()
+//                        .map(TmdbGenreDto::getId)
+//                        .forEach(gId -> genreRepository.findByTmdbId(gId).ifPresent(movie.getGenres()::add));
+//            }
+//
+//            // Çevirileri Ekle (Sadece yeni filmse)
+//            if (isNew) {
+//                for (String langCode : supportedLanguages) {
+//                    try {
+//                        TmdbMovieDto langData = tmdbClient.fetchMovieDetails(tmdbId, contentType, langCode);
+//                        if (langData != null) {
+//                            MovieTranslation translation = new MovieTranslation();
+//                            translation.setLanguageCode(langCode);
+//                            translation.setTitle(langData.getTitle() != null ? langData.getTitle() : langData.getName());
+//                            translation.setDescription(langData.getOverview());
+//                            translation.setMovie(movie);
+//                            movie.getTranslations().add(translation);
+//                        }
+//                    } catch (Exception e) {
+//                        log.error("{} language translation failed for tmdbId: {}", langCode, tmdbId);
+//                    }
+//                }
+//            }
+//
+//            // YÖNETMEN BİLGİSİNİ ÇEK VE SET ET
+//            if (mainData.getCredits() != null && mainData.getCredits().getCrew() != null) {
+//                String directorName = mainData.getCredits().getCrew().stream()
+//                        .filter(crew -> "Director".equalsIgnoreCase(crew.getJob()))
+//                        .map(TmdbMovieDto.TmdbCrew::getName)
+//                        .findFirst()
+//                        .orElse("Unknown Director");
+//                movie.setDirector(directorName);
+//            }
+//
+//            return movieRepository.save(movie);
+//        } else {
+//            // Film zaten var ve yönetmeni de dolu, direkt döndür
+//            return existingMovieOpt.get();
+//        }
+//    }
+
     @Transactional
     public Movie importMovieEntity(Long tmdbId, String contentType, String currentLang) {
         return movieRepository.findByTmdbId(tmdbId).orElseGet(() -> {
             TmdbMovieDto mainData = tmdbClient.fetchMovieDetails(tmdbId, contentType, "en");
             if (mainData == null) throw new BusinessException(messageHelper.getMessage("tmdb.movie.not.found"));
+
 
             Movie movie = new Movie();
             movie.setTmdbId(mainData.getId());
@@ -105,6 +191,7 @@ public class TmdbService {
             movie.setTmdbRating(mainData.getVoteAverage());
             movie.setPosterUrl(mainData.getPosterPath());
             movie.setContentType(contentType.toUpperCase());
+
 
             String date = mainData.getReleaseDate() != null ? mainData.getReleaseDate() : mainData.getFirstAirDate();
             if (date != null && date.length() >= 4) {
@@ -134,6 +221,16 @@ public class TmdbService {
 
                 }
             }
+
+            if (mainData.getCredits() != null && mainData.getCredits().getCrew() != null) {
+                String directorName = mainData.getCredits().getCrew().stream()
+                        .filter(crew -> "Director".equalsIgnoreCase(crew.getJob()))
+                        .map(TmdbMovieDto.TmdbCrew::getName)
+                        .findFirst()
+                        .orElse("Unknown Director");
+                movie.setDirector(directorName);
+            }
+
             return movieRepository.save(movie);
         });
     }
@@ -205,10 +302,26 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
                 return success(CustomPageResponse.of(Page.empty()));
 //                return success(Page.empty());
 
+            // 1. TMDB'den gelen tüm ID'leri bir listeye topla
+            List<Long> tmdbIdsFromResponse = response.getResults().stream()
+                    .map(TmdbMovieDto::getId)
+                    .toList();
+
+            // 2. Bu ID'lerden hangileri bizim veritabanımızda zaten var?
+            // Repository'e "findAllByTmdbIdIn" metodu eklemen gerekebilir (aşağıda belirttim)
+            List<Long> existingTmdbIds = movieRepository.findAllByTmdbIdIn(tmdbIdsFromResponse)
+                    .stream()
+                    .map(Movie::getTmdbId)
+                    .toList();
+
             List<MovieResponse> movies = response.getResults().stream()
+                    .filter(dto -> !existingTmdbIds.contains(dto.getId()))
                     .map(dto -> {
                         MovieResponse res = movieMapper.toResponseFromTmdb(dto, lang);
-                        res.setLikeCount(0L); res.setCommentCount(0L); res.setClubRating(0.0);
+                        res.setLikeCount(0L);
+                        res.setCommentCount(0L);
+                        res.setClubRating(0.0);
+                        res.setContentType(contentType.toUpperCase());
                         return res;
                     }).toList();
 
@@ -217,6 +330,7 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
             return success(CustomPageResponse.of(finalPage));
 
         } catch (Exception e) {
+            log.error("TMDB Discover failed: ", e);
             return success(CustomPageResponse.of(Page.empty()));
         }
 
@@ -284,7 +398,7 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
                     })
                     .collect(Collectors.toCollection(ArrayList::new)); // Redis için en güvenli yol
         } catch (Exception e) {
-            // Hatanın ne olduğunu logla ki "neden 401 aldım" diye kör kalma
+            // Hatanın ne olduğunu logla gor "neden 401 aldım"
             //System.err.println("Cache/API Error: " + e.getMessage());
             log.error("TMDB Popular Movies fetching failed for region: {} - Error: ", region, e);
             return new ArrayList<>();
@@ -292,7 +406,7 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
     }
 
 
-    @Cacheable(value = "watch_providers", key = "{#tmdbId, #contentType, #region}")
+    //@Cacheable(value = "watch_providers", key = "{#tmdbId, #contentType, #region}")
     public MovieWatchProvidersResponse getWatchProviders(Long tmdbId, String contentType, String region) {
         try {
             Map<String, Object> response = tmdbClient.fetchWatchProviders(tmdbId, contentType);
@@ -307,6 +421,8 @@ public RestResponse<List<ActorResponse>> searchActors(String query, String lang)
             providerResponse.setRent(parseProviders(regionData.get("rent")));
             providerResponse.setBuy(parseProviders(regionData.get("buy")));
 
+            log.info("TMDB Request - ID: {}, Region: {}, Available Regions in TMDB: {}",
+                    tmdbId, region, results.keySet());
             return providerResponse;
         } catch (Exception e) {
             return new MovieWatchProvidersResponse();

@@ -18,27 +18,39 @@ public class UserContextInterceptor implements HandlerInterceptor {
         // 1. Manuel seçim (Frontend X-Region)
         String region = request.getHeader("X-Region"); // Frontend manuel gönderebilir
 
-        // 2. Altyapı bilgisi (Cloudflare/Nginx) - Canlı ortamda en güvenilir IP verisi
-        if (region == null || region.isEmpty()) {
+        // 2. Coğrafi Headerlar (Cloudflare vb. varsa)
+        if (region == null || region.isBlank()) {
             region = request.getHeader("CF-IPCountry");
         }
+//        // 2. Altyapı bilgisi (Cloudflare/Nginx) - Canlı ortamda en güvenilir IP verisi
+//        if (region == null || region.isEmpty()) {
+//            region = request.getHeader("CF-IPCountry");
+//        }
 
-        // 2. Eğer yoksa Cloudflare/Nginx header'ına bak (Canlı ortam için)
-        if (region == null || region.isEmpty()) {
-            region = request.getHeader("CF-IPCountry"); // Cloudflare standardı
+        // 3. Accept-Language içindeki Ülke Kodu (Örn: tr-TR -> TR)
+        if (region == null || region.isBlank()) {
+            Locale locale = request.getLocale();
+            if (locale != null && locale.getCountry() != null && !locale.getCountry().isBlank()) {
+                region = locale.getCountry();
+            }
         }
 
         // 3. Tarayıcı Locale bilgisi (Accept-Language içinden çekilen ülke)
-        if (region == null || region.isEmpty()) {
-            region = request.getLocale().getCountry();
-        }
+//        if (region == null || region.isEmpty()) {
+//            region = request.getLocale().getCountry();
+//        }
+
 
         // 3. O da yoksa IP tabanlı bir kütüphane kullan (Opsiyonel: MaxMind GeoIP kütüphanesi)
 
-        // 4. Fallback (Varsayılan)
-        if (region == null || region.isEmpty()) {
+        // 4. Fallback: Eğer hala bulunamadıysa (Lokal testler veya eksik header)
+        if (region == null || region.isBlank()) {
             region = "TR";
         }
+//        // 4. Fallback (Varsayılan)
+//        if (region == null || region.isEmpty()) {
+//            region = "TR";
+//        }
 
         UserContext context = new UserContext();
         context.setRegion(region.toUpperCase());

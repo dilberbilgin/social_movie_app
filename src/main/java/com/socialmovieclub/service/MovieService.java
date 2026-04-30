@@ -42,7 +42,7 @@ public class MovieService {
     private final TmdbService tmdbService;
     private final WatchProviderService watchProviderService;
 
-    @Transactional
+    @org.springframework.transaction.annotation.Transactional
     //Admin veya sistem tarafından manuel film eklemek için
     @CacheEvict(value = {"trendingMovies", "topRatedMovies", "globalSearch"}, allEntries = true)
     public RestResponse<MovieResponse> createMovie(MovieCreateRequest request, String lang) {
@@ -80,6 +80,8 @@ public class MovieService {
         return success(responseData, successMsg);
     }
 
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
 //public RestResponse<Page<MovieResponse>> getAllMovies(String lang, Pageable pageable) {
 public RestResponse<CustomPageResponse<MovieResponse>> getAllMovies(String lang, Pageable pageable) {
     // 1. Veritabanından sayfalı çek
@@ -236,10 +238,11 @@ public RestResponse<CustomPageResponse<MovieResponse>> getAllMovies(String lang,
     // Sadece UUID değil, opsiyonel olarak tmdbId de alabiliriz
 // veya UUID üzerinden bulunamadığında TMDB kontrolü yapabiliriz.
 
-    @Cacheable(value = "movieDetails",
-            key = "{#id, #tmdbId, T(com.socialmovieclub.core.context.UserContextHolder).getContext().getRegion(), #lang}",
-            unless = "#result == null")
+//    @Cacheable(value = "movieDetails",
+//            key = "{#id, #tmdbId, T(com.socialmovieclub.core.context.UserContextHolder).getContext().getRegion(), #lang}",
+//            unless = "#result == null")
     public RestResponse<MovieResponse> getMovieDetail(UUID id, Long tmdbId, String contentType, String lang) {
+
         Movie movie;
 
         // Önce TMDB ID kontrolü (Çünkü aramadan gelen filmlerde UUID henüz oluşmadı)
@@ -267,6 +270,7 @@ public RestResponse<CustomPageResponse<MovieResponse>> getAllMovies(String lang,
         }
 
         MovieResponse response = movieMapper.toResponse(movie, lang);
+        System.out.println("GÜNCEL BÖLGE: " + com.socialmovieclub.core.context.UserContextHolder.getContext().getRegion());
 
         response.setWatchProviders(watchProviderService.getProviders(movie.getTmdbId(), movie.getContentType()));
         movieMapper.enrichWatchProviderLogos(response);

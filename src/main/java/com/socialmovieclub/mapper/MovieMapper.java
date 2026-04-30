@@ -34,6 +34,7 @@ public interface MovieMapper {
     @Mapping(target = "title", ignore = true)
     @Mapping(target = "description", ignore = true)
     @Mapping(target = "genres", source = "genres")
+    @Mapping(target = "director", source = "director")
     @Mapping(target = "posterUrl", source = "posterUrl", qualifiedByName = "posterUrlMapper")
     @Mapping(target = "tmdbRating", source = "tmdbRating") // Entity'deki tmdbRating'i eşle
 //    @Mapping(target = "clubRating", source = "clubRating") // Entity'deki clubRating'i eşle

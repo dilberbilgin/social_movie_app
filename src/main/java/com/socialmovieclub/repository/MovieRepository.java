@@ -46,6 +46,8 @@ public interface MovieRepository extends JpaRepository<Movie, UUID>, JpaSpecific
 
     @EntityGraph(attributePaths = {"genres", "translations"})
     List<Movie> findByOriginalTitleContainingIgnoreCase(String title);
+
+    List<Movie> findAllByTmdbIdIn(List<Long> tmdbIds);
 }
 
 

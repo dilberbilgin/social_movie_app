@@ -43,4 +43,18 @@ public class TmdbMovieDto {
     private List<Long> genreIds; // TMDB'nin kategori ID listesi
 
     private List<TmdbGenreDto> genres; // Bazen genre_ids yerine bu dolu gelir
+
+    @JsonProperty("credits")
+    private TmdbCredits credits;
+
+    @Data
+    public static class TmdbCredits {
+        private List<TmdbCrew> crew;
+    }
+
+    @Data
+    public static class TmdbCrew {
+        private String name;
+        private String job;
+    }
 }
