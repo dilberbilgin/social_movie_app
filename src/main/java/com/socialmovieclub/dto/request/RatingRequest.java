@@ -26,3 +26,33 @@ public class RatingRequest {
     @NotBlank(message = "{movie.contentType.required}")
     private String contentType; // "MOVIE" veya "TV"
 }
+
+//todo bu konuya bakilacak.
+/*
+Örneğin Controller:
+@RequestParam(
+    required = false,
+    defaultValue = "MOVIE"
+) String contentType
+alıyor.
+Ama RatingRequest zaten:
+@NotBlank
+private String contentType;
+içeriyor.
+Yani şu anda iki farklı contentType kaynağın var.
+Bu ileride:
+query parameter → MOVIE
+body            → TV
+olursa hangisi doğru?
+Tek source of truth seçmeliyiz.
+uhtemelen request body yeterli:
+{
+  "tmdbId": 123,
+  "score": 9,
+  "contentType": "TV"
+}
+ve Service:
+request.getContentType()
+kullanabilir.
+
+ */

@@ -37,7 +37,7 @@ public class AuthService {
         // 2. SecurityContext'e set et (Bu thread için kullanıcıyı "Giriş yapmış" sayar)
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 3. JWT üret
+        // 3. JWT üretiliyor burada
         String jwt = jwtUtils.generateJwtToken(authentication);
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -48,3 +48,5 @@ public class AuthService {
         return RestResponse.success(new JwtResponse(jwt, userDetails.getUsername(), roles), "Login successful");
     }
 }
+//todo : Remove unused dependencies after checking Git history and login flow
+//todo : AuthenticationManager zaten kullanici bulma ve dogrulama islemlerini dolayli olarak yapiyor olabilir.

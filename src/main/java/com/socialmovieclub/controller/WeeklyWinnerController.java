@@ -27,22 +27,15 @@ public class WeeklyWinnerController {
     }
 
     @GetMapping("/trending")
-    public RestResponse<List<WeeklyWinnerResponse>> getTrending(@RequestParam(defaultValue = "4") int limit) {
+    public RestResponse<List<WeeklyWinnerResponse>> getTrendingReviews(@RequestParam(defaultValue = "4") int limit) {
         return weeklyWinnerService.getTrendingReviewsThisWeek(limit);
     }
 
     /**
-     * İsteğe bağlı: Tüm zamanların kazananlarını listeleyen "Onur Köşesi" sayfası için.
+     * Geçmiş haftaların kazananlarını sayfalı olarak döner.
      */
     @GetMapping("/hall-of-fame")
     public RestResponse<Page<WeeklyWinnerResponse>> getHallOfFame(Pageable pageable) {
-        // Spring Boot, istekteki ?page=0&size=10 parametrelerini otomatik Pageable'a çevirir.
         return weeklyWinnerService.getAllWinners(pageable);
-    }
-
-    @PostMapping("/test-trigger")
-    public RestResponse<String> triggerWinnerSelection() {
-        weeklyWinnerService.determineWeeklyWinner();
-        return RestResponse.success("Winner process triggered manually!");
     }
 }

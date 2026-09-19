@@ -21,11 +21,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -89,7 +84,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/users/profile/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/weekly-winners/**").permitAll() // Kazananı herkes görsün
 //                        .requestMatchers("/api/v1/weekly-winners/test-trigger").hasRole("ADMIN") // Sadece Admin tetikleyebilsin (veya geçici permitAll)
-                                .requestMatchers("/api/v1/weekly-winners/test-trigger").permitAll() // TEST İÇİN HERKESE AÇTIK
+                       //         .requestMatchers("/api/v1/weekly-winners/test-trigger").permitAll() // TEST İÇİN HERKESE AÇTIK
                         // 4. SON KALE
                         .anyRequest().authenticated()
                 )
