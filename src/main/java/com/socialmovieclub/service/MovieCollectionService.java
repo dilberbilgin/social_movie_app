@@ -119,9 +119,23 @@ public class MovieCollectionService {
         return RestResponse.success(response);
     }
 
+    @Transactional(readOnly = true)
     public RestResponse<MovieCollectionResponse> getCollectionDetail(UUID id, String lang) {
+
+        User currentUser = securityService.getCurrentUser();
+
         MovieCollection collection = movieCollectionRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(messageHelper.getMessage("collection.not.found")));
+                .orElseThrow(() -> new BusinessException(
+                        messageHelper.getMessage("collection.not.found")));
+
+        boolean isOwner =
+                collection.getUser().getId().equals(currentUser.getId());
+
+        if (!collection.isPublic() && !isOwner) {
+            throw new BusinessException(
+                    messageHelper.getMessage("auth.access.denied")
+            );
+        }
 
         MovieCollectionResponse response = movieCollectionMapper.toResponse(collection, lang);
 
