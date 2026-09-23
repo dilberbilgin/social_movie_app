@@ -70,7 +70,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/comments/movie/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/profile/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/follows/**").permitAll()
-                        .requestMatchers("/api/tmdb/**").permitAll()
+//                        .requestMatchers("/api/tmdb/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/tmdb/**").permitAll()
 
                         // 3. AUTHENTICATED GEREKTİREN ÖZEL POST/PUT İSTEKLERİ
                         // Sıralama: Önce spesifik yollar, sonra genel yollar
